@@ -1,0 +1,29 @@
+\chapter{公式}
+
+这里直接给出几个较为复杂的公式的例子，可一一进行参照。
+若有未包含的数学符号或公式格式，请参阅本模板所包含的手册（本地manual文件夹）或百度必应谷歌。
+
+\section{公式5.1与论证}
+“从直接代码依赖的角度出发，从一个初始域外的类$C_{out}$ 出发我们尝试找到一个通往初始域内的类$C_{in}$ 的路径。一条合法的路径需要满足以下两点要求：（1）这一路径是单向的，即$C_{out}$ 传递性地到达$C_{in}$ 或$C_{in}$ 传递性地到达$C_{out}$；（2）路径中只能包含一个$C_{in}$ （为了避免重复路径的出现）。为了恰当的估计一条合法路径所代表的交互程度，我们计算路径上所有直接代码依赖的紧密度值的几何平均。我们用如下公式来重新计算给定$C_{out}$ 的IR 值（$IR_{DC}$）：”
+
+\begin{align}
+IR_{DC}=IR_{origin}+(IR_{top}-IR_{origin})^{\left| PATH\right|}\sqrt {\prod _{x \in PATH}Closeness_{DC}(x)} \end{align}
+
+“其中$IR_{origin}$ 代表$C_{out}$ 的初始IR值，$IR_{top}$ 代表$C_{in}$ 被提升过的IR值，\emph{PATH} 代表$C_{out}$ 与$C_{in}$ 之间的路径内所有的直接代码依赖，而$Closeness_{DC}(x)$ 则代表每一条直接代码依赖关系的紧密度值。在同一对$C_{out}$ 和$C_{in}$ 之间可能存在多条合法路径，我们只保留其中能使$IR_{DC}$ 值最大的那条路径。”
+
+\section{公式5.2与论证}
+
+“由于IR 方法返回的是一个按照IR 值大小倒序排列的候选线索列表，因此一种常用的比较IR 方法的方式是在不同的查全率水平上比较不同方法之间的精确度，通常用$Precision-Recall$ 曲线表示。为了进一步衡量IR 方法返回结果的整体质量，我们选用了另外两个常用的实验度量：$AP$（Average Precision）与$MAP$ （Mean Average Precision）。其中，$AP$ 用于度量全部查询（需求）所检索的相关文档的排序质量，计算方式如下：”
+\begin{align}
+AP=\dfrac {\sum _{r=1}^{N}\left( Precision\left( r\right) \times isRelevant\left( r\right) \right) } {\left| RelevantDocuments\right| }
+\end{align}
+
+“其中，$r$ 表示被查询对象（类）在列表中的排序，$Precision(r)$ 表示前$r$ 个类的准确率。$isRelevant()$ 为一个二值函数，如果文档是相关的，则返回1，若无关，则返回0。”
+
+\section{公式5.3与论证}
+
+“由此，我们为类数据依赖定义紧密度$Closeness_{CD}$ 如下：”
+
+\begin{align}Closeness_{CD}=\frac {\sum _{x \in \{DT_{i}\cap DT_{j}\}}idtf(x)} {\sum _{y \in \{DT_{i}\cup DT_{j}\}}idtf(y)}\end{align}
+
+“其中$idtf(x)$ 代表共享数据类型的idtf值，$DT_i$ 与$DT_j$ 的交集代表该数据依赖上的共享数据类型，而$DT_i$ 与$DT_j$ 的并集则代表$C_i$ 和$C_j$ 在全部代码上所访问的数据类型。$Closeness_{CD}$ 的取值范围是0到1之间。”

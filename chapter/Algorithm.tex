@@ -1,0 +1,30 @@
+\chapter{算法}
+
+同样是定义+引用的方式，参见算法~\ref{alg:Re-rankLinksOutsideInitialRegion}。
+本算法已包含大量常用格式，如有未包含的数学符号或格式，请参阅本模板所包含的手册或询问百度必应谷歌。
+如论文中无需算法则不用强加。
+
+\begin{algorithm}[htbp]
+\caption{初始需求域外追踪线索的重排}
+\label{alg:Re-rankLinksOutsideInitialRegion}
+topIRValue $\leftarrow$ initialRegion.topIRValue;\\
+\ForEach {link in candidateList} {
+  \If {!initialRegion.contains(link.class)} {
+      \ForEach {c in initialRegion} {
+          pathList $\leftarrow$ findValidPaths(link.class, c);\\
+            $gMean$ $\leftarrow$ 0;\\
+            \ForEach {path in pathList} {
+              $gMean$ $\leftarrow$ max(GeometricMean($Closeness_{DC}$(path)), $gMean$);
+            }
+            link.IRValue $\leftarrow$ link.IRValue + $gMean$(topIRValue - link.IRValue);\\
+            \If {hasDataDependencies(c, link.class)} {
+              link.IRValue $\leftarrow$ link.IRValue + $Closeness_{CD}$(c, link.class)(topIRValue - link.IRValue);
+            }
+        }
+        \If {link.IRValue \textgreater \ topIRValue} {
+          link.IRValue $\leftarrow$ topIRValue;
+        }
+    }
+}
+candidateList.reorderByIRValue();
+\end{algorithm}

@@ -1,0 +1,114 @@
+\chapter{表格}
+
+表格是LaTeX中少数没有Word好用的功能。
+但word的表格依然存在行间距的问题，而LaTeX也有简洁美观，相对易用（相对）的三线表。
+
+\section{表格与表格引用的基本概念}
+表格的编号和表目录都是自动生成并持续编号的，无需人工修改。
+只要对表格有标注（label），则在正文中引用该表的label，就可以随时保持最新编号。
+
+\textbf{注意：如果一个新表格加入，并被引用，编辑器将需要连续编译两次到三次，才能完成全部标题、引用和目录的更新。
+可以理解为第一次编译引入新表格，此时还不知表格引用位置的具体编号，需要留待第二次编译完成。
+而有可能第三次编译才将表格信息写入开头的表目录。
+类似的情况也会出现在图形和论文引用这两部分，其中尤以论文引用部分最为奇特，详见相关章节。}
+
+\section{基本表格}
+
+表~\ref{table:codeOverlap}（这里是一个表引用！）是一个简单的三线表，双击表格可以在编辑界面内见到具体设置。
+
+具体解释一下表格的设置：
+第一个table体内首先先声明标记位置以及字体大小；
+随后声明表格对齐方式；
+其次描述表标题；
+之后进入具体的表内容（tabular，此时还要声明表格单元中的内容如何对齐）；
+依次画出三线并填充内容；
+如果表格内容较多，可以相应的加入横线来划分（hline）；
+之后退出tabular；
+最后给表起名以实现全局引用，并退出表格。
+
+\begin{table}[htb]\footnotesize
+\centering
+\caption{实验系统中函数调用与数据依赖的交集}
+\vspace{2mm}
+% l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
+\begin{tabular}{lccc}
+\toprule
+&\textbf{Call}&\textbf{Data}&\textbf{Overlap}\\
+\midrule
+\textbf{VoD}&222&899&66\\
+\textbf{GanttProject}&5560&24243&1042\\
+\hline
+\textbf{jHotDraw}&3943&14555&893\\
+\bottomrule
+\end{tabular}
+\label{table:codeOverlap}
+\end{table}
+
+\section{表格单元跨列}
+
+表~\ref{table:codeSmellMethods}展示如何实现表格单元跨列。
+
+\begin{table}[htb]\footnotesize
+\centering
+\caption{错误率与函数特征之间的关联}
+\vspace{2mm}
+% l - left, r - right, c - center. | means one vertical line
+\begin{tabular}{lcccccc}
+\toprule
+&\multicolumn{2}{c}{\textbf{Parameters}}
+&\multicolumn{2}{c}{\textbf{Return Value}}
+&\multicolumn{2}{c}{\textbf{Is Constructor}}\\
+&with&without&with&without&with&without\\
+\midrule
+\textbf{VoD}&8.99\%&9.20\%&6.10\%&9.51\%&9.43\%&8.46\%\\
+\textbf{GanttProject}&9.53\%&6.05\%&8.43\%&6.71\%&5.14\%&8.09\%\\
+\textbf{jHotDraw}&4.40\%&3.89\%&4.36\%&3.88\%&2.91\%&4.39\%\\
+\bottomrule
+\end{tabular}
+\label{table:codeSmellMethods}
+\end{table}
+
+\section{表格单元跨行}
+
+表~\ref{table:systemsCH4}展示如何实现表格单元跨行（Average Number那一行）。
+此外，本表格的字体尺寸为scriptsize，比上一个表格的footnotesize要更小。
+
+\begin{table}[htb]\scriptsize
+\centering
+\caption{五个实验系统概述}
+\vspace{2mm}
+% l - left, r - right, c - center. | means one vertical line
+\begin{tabular}{lccccc}
+\toprule
+&\textbf{VoD}&\textbf{Chess}&\textbf{GanttProject}&\textbf{jHotDraw}&\textbf{iTrust}\\
+\midrule
+\textbf{Version}&-&0.1.0&2.0.9&7.2&13.0\\ \hline
+\textbf{Programming Language}&Java&Java&Java&Java&Java\\ \hline
+\textbf{KLOC}&3.6&7.2&45&72&43\\ \hline
+\textbf{Executed methods}&165&316&2741&1755&250\\ \hline
+\textbf{Evaluated requirements}&12&7&17&21&34\\ \hline
+\multirow{2}{3.5cm}{\textbf{Average Number of Methods Implementing a Requirement}}&45&173&387&121&12\\
+&(9-148)&(23-288)&(78-815)&(1-555)&(1-33)\\ \hline
+\textbf{Size of the golden RTM}&1980&2212&46597&36855&8500\\ \hline
+\textbf{Requirement traces}&534&1210&6584&2547&353\\ \hline
+\textbf{Random Chance of guessing}&0.5-7.5\%&1-13\%&0.2-1.7\%&0.003-1.5\%&0.01-0.4\%\\ \hline
+\textbf{Method Call Dependencies}&210&439&4830&3848&319\\ \hline
+\textbf{Method Data Dependencies}&905&976&30452&17316&5329\\
+\bottomrule
+\end{tabular}
+\label{table:systemsCH4}
+\end{table}
+
+\section{表格与图形位置}
+
+常用选项[htbp]是浮动格式：
+
+『h』当前位置。将图形放置在正文文本中给出该图形环境的地方。如果本页所剩的页面不够，这一参数将不起作用。
+
+『t』顶部。将图形放置在页面的顶部。
+
+『b』底部。将图形放置在页面的底部。
+
+『p』浮动页。将图形放置在一只允许有浮动对象的页面上。
+
+ 一般使用[htb]这样的组合，只用[h]是没有用的。这样组合的意思就是LaTeX会尽量满足排在前面的浮动格式，就是h-t-b这个顺序，让排版的效果尽量好。图形章节会有更多位置符号的例子。

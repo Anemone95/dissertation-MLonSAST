@@ -1,0 +1,263 @@
+%%]dvipdfm
+\expandafter\def\csname CTEX@spaceChar\endcsname{\hspace{1em}}
+\documentclass[master]{NJUthesis}
+%\documentclass[twoside, master]{NJUthesis}
+% 可选参数：
+%   review 审阅模式，激活后个人、导师与学校信息均被隐去
+%   oneside/twoside 单面/双面打印
+%   phd/master 博士/硕士论文
+% 下面三个选一个：
+% dvi2pdf 使用 dvi2pdf(x) 生成最终的 PDF 文档 (缺省设置，不建议修改）
+% dvips 使用 dvips 生成最终的 PS 文档
+% pdftex 使用 pdfLaTeX 生成最终的 PDF 文档
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 导言区
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% 小节标题靠左对齐
+\CTEXsetup[format+={\flushleft}]{section}
+
+% 设置链接颜色
+\hypersetup{
+% pdf 属性
+            pdftitle={LaTeX Thesis Template of Nanjing University}, %
+            pdfauthor={San Zhang}
+}
+
+% 表格
+\usepackage{longtable, multirow}
+% 英文使用 Times 字体
+\usepackage{times}
+% 源代码
+\usepackage{fancyvrb}
+% 自定义列表样式
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{moreverb}
+\usepackage{txfonts}
+\usepackage{mathcomp}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage[linesnumbered,boxed,ruled,vlined]{algorithm2e}
+\usepackage{array}
+\usepackage{multirow}
+
+%%	added by Jiang
+\usepackage{extarrows}	%使用长箭头
+\usepackage{nomencl}	%与术语表有关的包
+\usepackage{booktabs}
+\usepackage{ccmap}
+
+%% added by lhy
+%%取消默认楷书命令
+\let\kaishu\relax 
+%% 配置新的楷书命令，粗体用方正粗楷简体，普通用方正楷体简体
+%% 这里其实是可选的，如果有什么更合适的楷体字体，可以自行替换
+\setCJKfamilyfont { bfkt }[BoldFont=FZCKJT.ttf]{FZKTJT.ttf}
+%% 添加新的字体命令kaishu，中文用方正楷体，英文用times
+\NewDocumentCommand \kaishu { } { \CJKfamily { bfkt } \fontspec{Times New Roman}}
+%% 全文所有英文默认使用Times英文字体
+\setmainfont{Times New Roman}
+
+\makenomenclature
+
+\setcounter{topnumber}{5}
+
+\theoremstyle{plain}
+\newtheorem{definition}{\hspace{2em}定义}[chapter]
+\newtheorem{lemma}{\hspace{2em}引理}[chapter]
+\newtheorem{theorem}{\hspace{2em}定理}[chapter]
+\newtheorem{property}{\hspace{2em}性质}[chapter]
+\newtheorem{example}{\hspace{2em}例}[chapter]
+\newtheorem{myrule}{\hspace{2em}规则}[chapter]
+
+
+\newcommand{\tabincell}[2]{\begin{tabular}{@{}#1@{}}#2\end{tabular}}% 表格内换行
+\renewcommand{\footnoterule}{%脚注线
+  \kern -3pt
+  \hrule width 2.3in height 0.4pt
+  \kern 2pt
+}
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 封面部分
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% 国家图书馆封面内容字符串
+% 仅博士需要填写并保证模板参数选择了 phd
+\classification{}
+\confidential{}
+\UDC{}
+\titlelinea{南京大学学位论文}
+\titlelineb{~\LaTeX{}~模板}
+\titlelinec{}
+\advisorinfo{南京大学~软件学院}
+\chairman{XXX 教授}
+\reviewera{某某某某　副研究员}
+\reviewerb{XXX 教授}
+\reviewerc{XXX 教授}
+\reviewerd{XXX 教授}
+\nlcfootdate{~年~~月~~日}
+
+% 南大中文封面内容字符串
+\title{基于污点传播和机器学习的Java静态扫描系统的设计和实现}
+\author{徐文远}
+\studentnum{MF1832200}
+\grade{2018}
+\advisor{\kaishu 陈振宇~~教授}
+
+\major{\kaishu 工程硕士（软件工程领域）}
+\researchfield{\kaishu 软件工程}
+\footdate{\kaishu 20xx~年~x~月}
+\submitdate{\kaishu 20xx~年~x~月~xx~日}
+\defenddate{\kaishu 20xx~年~x~月~xx~日}
+
+
+
+% 英文封面内容字符串
+\englishtitle{Using a Hammer to Crack a Nut}
+\englishauthor{Wenyuan Xu}
+\englishadvisor{Professor}
+\englishadvisorname{Zhenyu Chen}
+\englishinstitute{Software Institute}
+\englishdegree{Master of Engineering}
+\englishmajor{Software Engineering}
+\englishdate{May 2020}
+
+% 制作封面命令
+\maketitle
+
+%\makechinesetitle
+
+% 制作英文封面命令
+\makeenglishtitle
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 前言部分
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\frontmatter
+
+\begin{abstract}
+
+这部分是中文摘要。
+
+\textbf{注意：本模板使用的是PDFLaTeX编译的，这一编译的好处在于速度快，并能直接引用pdf格式的图形。}
+
+以下展示列举（无编号）：
+\begin{enumerate}
+  \item 贡献1。
+  \item 贡献2。
+  \item 贡献3。
+\end{enumerate}
+
+%这是注释，不影响正文
+
+\keywords{中文，关键，字}
+
+\end{abstract}
+
+% 英文摘要
+\begin{englishabstract}
+This is English abstract.
+
+以下展示的是圆点列举（无编号）做些修改~:
+\begin{itemize}
+  \item First Contribution.
+  \item Second Contribution.
+  \item Third Contribution.
+\end{itemize}
+
+\englishkeywords{English, Keywords}
+\end{englishabstract}
+
+% 生成目录命令（目录中不包含目录本身）
+\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
+\tableofcontents
+\addtocontents{toc}{\protect\setcounter{tocdepth}{3}}
+
+
+% 以下两个目录可根据具体情况注释掉（将表格目录和图形目录重命名后加入目录）
+% 生成表格目录命令
+\renewcommand*{\listtablename}{表~~目~~录}
+\listoftables
+\addcontentsline{toc}{chapter}{表~~目~~录}
+% 生成插图目录命令
+\renewcommand*{\listtablename}{图~~目~~录}
+\listoffigures
+\addcontentsline{toc}{chapter}{图~~目~~录}
+
+%生成术语表命令
+%\include{chapter/Nomenclatures}
+%\def\nomname{缩略语对照表}
+%\printnomenclature[5em]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 正文部分
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\mainmatter
+
+\input{chapter/Title.tex}
+
+\input{chapter/MainBody.tex}
+
+\input{chapter/Table.tex}
+
+\input{chapter/Figure.tex}
+
+\input{chapter/Formula.tex}
+
+\input{chapter/Algorithm.tex}
+
+\input{chapter/Reference.tex}
+% 参考文献
+
+\bibliography{reference}
+%% addde by lhy
+%% 因为overleaf上没有这个参考文献排版文件
+% \bibstyle{elsart-num}
+
+
+%个人简介
+\Nchapter{简历与科研成果}
+\noindent {\heiti 基本情况}
+\vspace{1ex}
+\noindent 徐文远，男，汉族，1995~年~8~月出生，江苏省南京市人。
+\vspace{2ex}
+
+\noindent {\heiti 教育背景}
+\begin{description}[labelindent=0em, leftmargin=8em, style=sameline]
+\item[2018.9～2020.6] 南京大学软件学院 \hfill 硕士
+\item[2014.9～2018.6] 扬州大学信息工程学院 \hfill 本科
+\end{description}
+% 发表文章目录
+
+\noindent {\heiti 这里是读研期间的成果（实例为受理的专利）}
+
+\begin{enumerate}[label=\arabic*., labelindent=0em, leftmargin=*]
+	\item 李四，\textbf{张三}，``一种使用Hammer砸碎Nut的方法''，申请号：20xx1018xywz.a，已受理。
+\end{enumerate}
+
+
+\backmatter
+
+
+\begin{thanks}
+
+\vskip 18pt
+
+这里是致谢。
+一般的感谢顺序：导师，其他指导老师，师兄弟姐妹、同学，父母和伴侣。
+
+\end{thanks}
+
+
+\end{document}
+
+

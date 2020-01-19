@@ -1,0 +1,51 @@
+\begin{thenomenclature} 
+
+ \nomgroup{A}
+
+  \item [{BF}]\begingroup Blocking for Freeness\nomeqref {0}
+		\nompageref{ix}
+  \item [{BMP}]\begingroup Bean Managed Persistence\nomeqref {0}
+		\nompageref{ix}
+  \item [{BPEL}]\begingroup Business Process Execution Language\nomeqref {0}
+		\nompageref{ix}
+  \item [{CCM}]\begingroup CORBA Component Model\nomeqref {0}
+		\nompageref{ix}
+  \item [{CIDL}]\begingroup Component Implementation Definitin Language\nomeqref {0}
+		\nompageref{ix}
+  \item [{CIF}]\begingroup Component Implementation Framework\nomeqref {0}
+		\nompageref{ix}
+  \item [{CMP}]\begingroup Container Managed Persistence\nomeqref {0}
+		\nompageref{ix}
+  \item [{COM}]\begingroup Component Object Model\nomeqref {0}
+		\nompageref{ix}
+  \item [{CORBA}]\begingroup Common Object Request Broker Architecture\nomeqref {0}
+		\nompageref{ix}
+  \item [{CV}]\begingroup Concurrent Version\nomeqref {0}
+		\nompageref{ix}
+  \item [{DCOM}]\begingroup ~Distributed Component Object Model\nomeqref {0}
+		\nompageref{ix}
+  \item [{EJB}]\begingroup Enterprise Java Beans\nomeqref {0}
+		\nompageref{ix}
+  \item [{EPS}]\begingroup Enlarged Passive Set\nomeqref {0}
+		\nompageref{ix}
+  \item [{JMS}]\begingroup Java Message Service\nomeqref {0}
+		\nompageref{ix}
+  \item [{MDB}]\begingroup Message Driven Bean\nomeqref {0}
+		\nompageref{ix}
+  \item [{MTS}]\begingroup Microsoft Transaction Service\nomeqref {0}
+		\nompageref{ix}
+  \item [{POJO}]\begingroup Plain Old Java Object\nomeqref {0}
+		\nompageref{ix}
+  \item [{PS}]\begingroup Passive Set\nomeqref {0}\nompageref{ix}
+  \item [{RMI}]\begingroup Java Remote Method Invocation\nomeqref {0}
+		\nompageref{ix}
+  \item [{SCA}]\begingroup Service Component Architecture\nomeqref {0}
+		\nompageref{ix}
+  \item [{SPI}]\begingroup Java Service Provider Interface\nomeqref {0}
+		\nompageref{ix}
+  \item [{WF}]\begingroup Waiting for Freeness\nomeqref {0}
+		\nompageref{ix}
+  \item [{WSDL}]\begingroup Web Service Definition Language\nomeqref {0}
+		\nompageref{ix}
+
+\end{thenomenclature}

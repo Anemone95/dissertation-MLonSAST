@@ -1,0 +1,28 @@
+\chapter{图形}
+
+\section{基本图形}
+相对于表格而言，LaTeX中的图形就简单多了，需要注意的是本模板推荐将所有图形都转化为pdf，具体内容参见图~\ref{fig_errorExpCH4}。
+该图形放在本模板的本地文件夹FIGs中。
+图~\ref{fig_errorExpCH4}是将Excel的五个子图形排布在一个ppt页面上，之后保存为pdf文件，最终得到的图形可以保证是矢量图。
+
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=5in]{FIGs/chapter4/errorExpCH4.pdf}
+  \caption{以含错误的RTM为输入的五个系统上三个实验（Call，Data，Call+Data）的错误率（Incorrectness）}\label{fig_errorExpCH4}
+\end{figure}
+
+\textbf{注意：不要删除FIGs下面的njulogo和njuname这两个文件，这是论文封面的校徽和手写体南大校名。}
+
+\section{引用代码}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\linewidth]{FIGs/chapter4/VoDCodeSample.pdf}
+  \caption{VoD系统中的代码片段}\label{fig_VoDCodeSample}
+\end{figure}
+
+这里给出一个代码引用的推荐实践。
+引用代码时先将代码放入word的文本框中，调整结束后，将该文本框页面另存为pdf文件，之后再作为图形来引用，如图~\ref{fig_VoDCodeSample}所示。
+
+
