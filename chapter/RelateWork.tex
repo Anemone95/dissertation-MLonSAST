@@ -31,7 +31,7 @@
 该技术作为一种使用严格的数理逻辑推理作为检测手段的技术，具有极低的误报率，但由于其需要针对特定漏洞构建数学条件，其过程需要大量的人工参与，有的漏洞甚至难以用断言结构表达，适用于死循环，资源泄露，空指针等问题，对新漏洞的扩展性不高，同时，如何将大规模程序应用于形式化方法分析也成为工业界亟待解决的问题。 \\
 
 \subsubsection{符号执行技术}
-符号执行技术是一种将程序执行可达性问题转化为约束求解问题，并以此进行漏洞挖掘的技术~\cite{sym:sum}。
+符号执行技术是一种将程序执行可达性问题转化为约束求解问题，并以此进行漏洞挖掘的技术~\cite{sym:sum}，经典的符号执行只用于白盒测试，经过改进后也用于灰盒测试，代表性工具有angr~\footnote{\url{http://angr.io/}}，DART~\cite{sym:dart}, CUTE~\cite{sym:cute}, EXE~\cite{sym:exe}和KLEE~\cite{sym:klee}。
 % https://www.youtube.com/watch?v=mffhPgsl8Ws
 % https://blog.csdn.net/wcventure/article/details/86773290
 %Symbolic Execution for Software Testing: Three Decades Later
