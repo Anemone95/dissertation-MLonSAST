@@ -2,41 +2,61 @@
 \section{污点分析模块的实现}
 \subsection{构造污点传播函数调用图}
 %数据结构
+
 %构造方法
+
 \subsection{构造污点传播树}
 %数据结构
 %构造方法
 %数据保存形式
-\subsection{关键代码}
 
 \section{程序切片模块的实现}
 
-\subsection{后向切片接口和实现}
+\subsection{后向切片的实现}
+% 先说流程
+
+% joana配置
 %突出解决了的几个坑（bug，无依赖切片，限制调用图的切片）
 
-\subsection{切片控制模块实现}
-%突出流程图
+% 处理的bug，SpringBoot类的包找不到类： 1. top.anemone.mlsast.core.classloader.AppWalaClassLoaderFactory top.anemone.mlsast.core.classloader.AppWalaClassLoader 3.top.anemone.mlsast.core.classloader.AppClassloader
 
-\subsection{关键代码}
+% 解决无依赖切片
+% 1.makewithroot 当A类继承B类，找不到B类时，A类将继承Object，
+% 2. top.anemone.mlsast.core.joana.AppEntrypoint#makeParameterTypes，即入口函数参数为缺失依赖时直接返回一个类型标记而不继续找
+% 3. top.anemone.mlsast.core.joana.AppEntrypoint#makeArgument，即遍历函数的参数为到找不到的类时，argument会新建一个空的虚节点代替
+
+% 对限制调用图的切片 edu.kit.joana.wala.core.prune.NodeLimitPruner
+
+
+\subsection{切片控制模块实现}
+
+% 对污点传播结果的反序列化和翻译
+
+% 对污点传播结果的dfs算法 top.anemone.mlsast.core.slice.DFSTaintTree
+
+% 对每一个污染流进行切片代码
+
 
 \section{数据处理模块的实现}
-目前还未实现，先不写\\
-\subsection{关键代码}
+
+\subsection{泛化处理的实现}
+
+\subsection{向量化处理的实现}
+
 
 \section{误报预测模块的实现}
 
-\subsection{误报预测控制模块实现}
+\subsection{误报预测控制}
 %突出流程图
 
-\subsection{关键代码}
+\subsection{误报预测时序图}
 
-\section{UI模块的实现}
-目前还未实现，先不写\\
-\subsection{关键代码}
+\subsection{误报标记时序图}
 
 \section{系统测试与运行展示}
 \subsection{测试目标}
 \subsection{功能测试}
 \subsection{性能测试}
+选择数据量较大的jar包进行测试
 \subsection{系统运行展示}
 \subsection{系统效果评估}

@@ -1,6 +1,5 @@
 \chapter{相关技术综述}
-这是章节标题。
-注：一般而言，标题不要比小节标题更小，即不要出现1.2.3.4这种标题（本模板支持此类标题，即Subsubsection）。
+本章主要介绍时下常用的漏洞挖掘技术，以及本系统将要用到的技术、工具和开发框架。
 
 \section{漏洞挖掘技术}
 漏洞挖掘指用自动化或半自动化技术对软件进行本身进行静态，动态分析，检测其是否存在安全漏洞的过程~\cite{liujian2018}。随着软件规模扩大，软件功能种类多样化，安全漏洞其种类也在不断增多，不同漏洞的产生原因不同，利用方式也不同，一种漏洞挖掘技术不能适用于所有漏洞，因此在实践中，人们会在软件开发的各个阶段应用不同类型的技术，本文将这些技术的应用场景主要分为三类：
@@ -75,7 +74,7 @@
 	\item 汇聚点（sink）：检查点是程序的一些敏感操作，如调用数据库查询语句，或是将数据返回到网页，如果这些操作的操作数据是污点，那么意味着操作可被攻击者利用，即程序存在漏洞。
 	\item 清洁点（clean）：清洁点通常是对污点进行消除的一类操作，如SQL注入、XSS中的过滤函数。清洁点是污点传播准确性的重要保证，不能识别清洁点即会引发污点过污染问题。
 \end{itemize}
-这些三要素主要是通过安全从业人员根据经验手动标记，而在学术界也存在同统计或机器学习产生点和汇聚点的研究。\\
+这些三要素主要是通过安全从业人员根据经验手动标记，而在学术界也存在通过统计或机器学习产生点和汇聚点的研究。\\
 
 \subsubsection{污点传播过程}
 污点传播分为静态污点传播和动态污点传播，两者区别在于静态污点传播利用程序代码进行污点传播，而动态污点传播则需要通过程序的实际运行进行传播，由于本文关注于白盒测试情景，故只介绍静态污点传播方法，而在下一子章节会介绍动态传播的优劣势。
@@ -133,20 +132,124 @@
 
 再者，对于特殊触发条件的漏洞，污点传播无法很好处理，如图~\ref{taintcase3}所示，在第二行，因为SSRF要求攻击者能够操控主机名，所以即使用户输入的污点变量拼接在了一个正常网站之后，程序也不会出现SSRF的问题，而按照污点传播分析法，毫无疑问它会报告这段程序存在SSRF漏洞。
 
-最后，不论是动态污点传播还是静态污点传播，其对污点清洁点的识别能力几乎为零，如图~\ref{taintcase4}所示，程序已经对潜在的XSS攻击做出的处理——即在第2-5行对用户输入的特殊符号进行替换和过滤，但是污点传播并不能识别这些清洁点，导致误报。
+最后，不论是动态污点传播还是静态污点传播，其对污点清洁点的识别能力几乎为零，如图~\ref{taintcase4}所示，程序已经对潜在的XSS攻击做出的处理——即在第2-5行对用户输入的特殊符号进行替换和过滤，但是污点传播并不能识别这些清洁点，导致误报。    
 
 正是因为存在这些不足，本文将在下文引入程序切片技术和LSTM来降低误报率。\\
 
+\subsection{Java污点分析工具选型}
+Java上的污点分析工具有很多，如FindSecBugs\footnote{\url{https://find-sec-bugs.github.io/}}(最初为FindBugs~\cite{taint:finding})，TAJ~\cite{taint:taj}。但对于安全扫描工具来说，除了污点传播引擎，针对漏洞定义好大量的入口点和汇聚点是扫描准确性的重要保证。findsecbugs作为较为经典的扫描工具，前人已经为预先定义了大量的污点传播入口点和汇聚点，并且支持自定义新的入口点和汇聚点，非常适合二次开发。
+
+本系统保证准确性的手段在于利用机器学习对污点传播的误报进行改进，而不是定义大量污点传播规则，因此本文采用FindSecBugs进行污点传播分析。此外，本系统解决了原版FindSecBugs不能打印污点传播树的问题，使其更加易用。\\
+
 \section{程序切片技术}
-\subsection{程序切片技术介绍}
+\subsection{程序切片定义}
+% https://www.cnblogs.com/maifengqiang/archive/2013/05/21/3090739.html
+% https://hacpai.com/article/1555083057303
+% 前向切片与后向切片之间关系的研究.pdf
+程序切片技术是一种通过对程序分析，抽取程序中与关注点相关的一组语句集合的技术，目前广泛运用于程序调试，程序测试，优化，安全分析等领域。
 
-\subsection{后向程序切片的优势}
+该技术首次由Mark Weiser在其博士论文中提出~\cite{slices:weiser1979}，他将程序切片做了如下定义：
 
-\section{词嵌入技术}
-（后期可能会改为文档嵌入技术，先不写）
+将程序抽象为图$G\langle N,E\rangle$，$N$为程序中的语句集合，$E$为$\left\langle n,m \right\rangle$的集合，其中$n$为数据流的上一条语句，m为数据流的下一条语句。
 
-\section{LSTM算法}
+定义：程序状态序列(state trajectory)为一个程序$P$中的，长度为$k$的有限序列，将其表示为：
+$$T=\left\langle \left\langle n_{1},s_{1} \right\rangle, \left\langle n_{2},s_{2} \right\rangle , \cdots , \left\langle n_{k},s_{k} \right\rangle \right\rangle$$
+
+其中$n_{i} \in N$，$s_i$为一个单射函数，记录所有变量到具体值的映射。
+
+定义：一个切片准则（Slicing citerion）为$C=\left\langle i, V \right\rangle$，其中$i$指关注点，通常是指一条程序语句，$V$表示程序P中的变量子集（通常为$i$上的变量集合，也可以不是）。
+
+该切片准则决定了一个投影函数$Proj_C$：
+$$
+\operatorname{Proj}_{\langle i, V\rangle}(T)=\langle\operatorname{Proj}_{(i, V)}^{\prime}\left(t_{1}\right) , \cdots, \operatorname{Proj}_{\langle i, V\rangle}^{\prime}\left(t_{n}\right) \rangle
+$$
+其中：
+$$
+\operatorname{Proj}_{\langle i, V\rangle}^{\prime}(\left\langle n, s \right\rangle)=\begin{array}{ll}
+{\lambda} & {\text { if } n \neq i} \\
+{\langle n, s | V \rangle} & {\text { if } n=i}
+\end{array}
+$$
+其中$\lambda$指空字符串，$s|V$指V中变量的单射函数。上式的含义是指，切片准则让我们只考虑$V$中变量的状态序列，并且只有当语句是关注点时，函数才返回状态序列，否则返回空字符。
+
+最终，切片S为一组源程序语句的子集，它由不停地删除零条或多条原程序语句得到，同时保证$\operatorname{Proj}_{C}(T)=\operatorname{Proj}_{C^{\prime}}\left(T^{\prime}\right)$其中$T'$指切片中的状态序列，而$C'=\langle succ(i), V \rangle$, $succ(i)$指最靠近关注点$i$的语句（如果V不是$i$上的变量集合）或者就是$i$本身（如果$ V $是$i$上的变量集合）。
+
+按照定义，可以知道Mark Weiser实际上定义的是后向切片（backward slices），即切出对关注点造成影响的所有语句和谓词集合。对其改进后也出现了前向切片（forward slices），即切出被关注点有影响的其他语句和谓词集合。\\
+
+\subsection{程序切片技术}
+%https://www.cnblogs.com/maifengqiang/archive/2013/05/21/3090739.html
+程序切片技术自诞生以来，也经历了多个阶段~\cite{slices:xu2005brief}，起初为Mark Weiser的概念阶段，主要通过控制流来进行程序切片；随后发展为基于依赖图的切片阶段，Ottenstein等人~\cite{slices:ottenstein1984program}首先提出了运用程序依赖图（PDG，Program Dependence Graph）进行切片，主要思想是首先对程序建立程序依赖图，再通过对程序依赖图的可达性计算进行后向切片，程序依赖图是一种反应语句数据依赖和控制依赖的一种程序中间表达形式，图中的点为单条程序语句，而图中的边则表示语句之间存在数据依赖关系，例如图~\ref{internalflow}的代码中中，第三行与第二行就存在数据依赖关系，第七行与第四行则存在控制依赖关系。PDG只适用于单个函数的切片，horwitz等人~\cite{slices:horwitz1990}提出了系统依赖图（SDG, System Dependence Graph）的概念，在PDG的基础上，增加了两种额外的边，一种边表示调用者和被调用者的直接依赖关系，另一种边描述由于边的依赖而引发的间接依赖关系，同时，前向切片也在此阶段产生；第三阶段为面向对象程序切片阶段，研究者提出将接受对象作为一个隐藏参数，结合多态解析手段，将面向对象切片问题转换为一般切片问题，使程序切片可以运用于面向对象语言。
+
+目前已有很多工具可以对java程序进行切片，例如WALA（T.J. Watson Libraries for Analysis）~\footnote{\url{http://wala.sourceforge.net/wiki/index.php/Main_Page}}和Joana~\footnote{\url{https://pp.ipd.kit.edu/projects/joana/}}~\cite{slices:joana}。WALA原本由IBM T.J. Watson 研究中心作为DOMO项目的一部分进行开发，在2006年，IBM将改软件转赠给社区。其主要功能包括Java类型系统和类层次分析，过程间数据流分析、指针分析和调用图构造以及上下文相关的切片等。Joana是由卡尔斯鲁厄理工学院推出，基于WALA的一些分析手段的另一款Java切片工具，其包含指针分析，异常分析和PDG构图等复杂功能，并且其切片结果中能够更清晰的看到函数调用时实参的值，而对于污点传播类型中的自定义过滤函数，实参的值是一个很重要的特征（见图~\ref{fig:sliceresult}），因此本文选择Joana作为程序的切片器。\\
+\begin{figure}
+	\centering
+	\subfigure[目标程序]{
+		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/slicetarget.png}}
+	% \hspace{0.1in}
+	\subfigure[Joana程序切片结果]{
+		% \label{fig:subfig:b} %% label for second subfigure
+		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/joanaslice.png}}
+	\subfigure[WALA程序切片结果]{
+		% \label{fig:subfig:b} %% label for second subfigure
+		\includegraphics[width=0.85\textwidth]{FIGs/chapter2/walaslice.png}}
+	\caption{Joana和WALA程序切片示例}
+	\label{fig:sliceresult} %% label for entire figure
+\end{figure}
+
+\subsection{后向程序切片的优势与不足}
+程序切片能够得到影响关注点的程序语句，在有效缩短了程序上下文，大大降低了要分析的代码量的同时，还有有效保留了控制流的信息，在程序调试，软件度量或是软件安全中已经得到了很广泛的应用。
+
+由于污点传播已经对程序由上而下的进行了分析，通过对汇聚点和污点值进行后向程序切片，可以从反方向分析漏洞代码，暴露先前没有考虑的控制语句，同时通过进一步的特征处理，可以作为神经网络的输入，即可弥补污点传播对控制流分析不足的缺陷，因此本文采用该技术作为特征处理的基础工作，另外由于程序切片属于较为传统的技术，在java语言上已有较为成熟的工具，考虑到java漏洞的特征与函数参数强相关这一特性，本文选择Joana进行程序切片。
+
+然而，传统后向程序切片也存在不足，目前最大的挑战在于当程序规模进一步变大时，后向程序切片变得效率低下；此外原生Joana并不支持在缺失程序依赖下对其程序进行切片，而在SCA的输入中，缺失依赖的程序又是非常常见的，针对以上问题本文做出了分段切片、限制调用图切片和无依赖切片的技术调整，具体细节将在第三四章节详细说明。\\
+
+\section{BLSTM算法}
+双向长短期记忆网络（BLSTM，Bidirectional Long Short-Term Memory）是一种特殊的循环神经网络（RNN，Recurrent neural network），主要改进有双向读取和增加记忆门两方面，是一种在自然语言处理上应用广泛的神经网络。\\
+
 \subsection{LSTM原理介绍}
-\subsection{LSTM的优势}
+为了保证在不同的序列数据上，相同数据点有不同输出结果，人们将其记忆体加入神经网络之中，从而产生了RNN，然而RNN在处理较长文本时，存在着梯度爆炸或梯度消失的问题，Hochreiter和Schmidhuber于1997年在记忆体中加入写入、输出和遗忘门，而改进后的神经网络也被成为长短期记忆网络（LSTM，Long Short-Term Memory）~\cite{lstm:1997}。
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=0.4\linewidth]{FIGs/chapter2/lstm_cell.pdf}
+	\caption{LSTM的神经元}\label{lstmcell}
+\end{figure}
+如图~\ref{lstmcell}所示，一个LSTM的神经元有四个输入：$z$表示原输入，$z_i$表示输入门，$z_f$表示遗忘门，$z_o$表示输出门，以及有一个输出$o$，神经元内有一记忆体$C$，在下一时刻的输入进入神经元时，记忆体下一时刻的值$C'=g(z)*s(z_i)+C*f(z_f)$，$g(z)$为输入值的激活函数，$s(z)$为门限的激活函数，通常取sigmoid函数，从公式可以看出，首先输入门控制了输入数据本身是否可以输入进神经元，接着遗忘门控制了记忆体中旧数据是否会保留，最后输出$a=tanh(c')*f(z_o)$，显然，$z_o$控制了记忆体是否向外输出。
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=0.8\linewidth]{FIGs/chapter2/lstm_time.pdf}
+	\caption{LSTM的处理时序数据示意图}\label{lstmtime}
+\end{figure}
+
+利用LSTM处理时序数据情况如图~\ref{lstmtime}所示，对于任意时刻$t$，有$h_{t-1}$和$c_{t-1}$（$t_0$时为随机值），$h_{t-1}$和$x_t$通过线性变换得到$z_f$、$z_i$、$z$和$z_o$，例如，$z_f=W_{f}\times [h,x]+b_{f}$。$z_f$、$z_i$、$z$和$z_o$均为以为向量，其长度等于该层LSTM神经元的个数，按上文所述，这4组向量输入神经元，结合神经元内的记忆体$c_{t-1}$计算得到输出$y_t$，同时$y_t$的值也作为下一轮输入的一部分，即$h_t$。$h_t$和$x_t+1$作为下一时刻的输入，输入下一时刻的神经元。在自然语言处理领域，人们通常利用最后一个时刻的输出对自然语言分类。\\
+
+\subsection{双向读取——BLSTM}
+早在RNN时期，就有研究者提出双向RNN提升拟合或预测准确性的思想，而LSTM作为RNN的一种，自然也可以运用该思想对其进行优化。
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=0.8\linewidth]{FIGs/chapter2/blstm.pdf}
+	\caption{BLSTM处理时序数据示意图}\label{blstm}
+\end{figure}
+如图~\ref{blstm}所示，对于一组时序数据$X=\left\{ x_0,\dots,x_t,x_{t+1},\dots,x_{k} \right\}$，训练两个LSTM网络，第一个网络正向读取数据，如图上方所示，第二个网络逆向读取数据，如图下方所示，在同一时刻，结合两个方向的网络输出值作为该时刻的输出（如果用于分类问题，通常结合正向$t_k$的输出和逆向$t_0$的输出）。
+
+BLSTM的优势在于，单向LSTM在$x_t$时刻的输出实际上只被$x_0, x_1, \dots, x_t$影响，即其只能考虑截止到当前时刻的数据，而BLSTM的在某一时刻的输出值不仅受到该时刻正向数据的影响，还能受到该时刻后向数据的影响，因此有纵观全局的能力。\\
+
+\subsection{BLSTM的优势}
+LSTM增加了门限机制，解决了RNN梯度爆炸或梯度消失的问题，而BLSTM通过双向传播机制，能够综合正向时序和逆向时序信息，是时序数据的分类和拟合问题较为合适的算法。
+
+由于BLSTM能够处理时序数据的分类问题，而污点传播的切片也正是可以转换为上下文敏感的时序数据。所以本系统采用BLSTM作为污点传播预测算法，通过训练集训练BLSTM参数将其保存，在给定污点传播的切片输入时，系统调用训练好的模型对其进行预测。
+
+\section{Django框架}
+\subsection{Django框架简介}
+Django是一个高级的Python Web开发框架，它使开发者能够对Web应用进行简洁实用的设计并对其进行快速开发。Django由一群有经验的开发者开发，其框架和内部设计避免了很多Web开发的问题，帮助开发者只关心于他们Web应用本身的逻辑而不需要重新开发通用组件。
+
+Django采用模型视图模板（MVT，Model-View-Template）模式，在模型层，其有一套高效的对象关系映射（ORM，Object Relational Mapping）框架和一些常用对象，比如用户对象，管理员对象等；在视图层，Django阶级了基于正则表达式的URL分派系统，能够让用户灵活的处理自己的URL路由，并且内置的Request，Response对象能够让开发者快速的获取和返回数据；在模板层，Django有自己的原生模板引擎，类似于Jinja2，同时支持用户更换第三方引擎，保证用户充分自由的展现其数据。除此之外，Django还内置了一个用户管理后台和各类安全保障模块，使大大加速了开发者的开发过程。\\
+
+\subsection{Django框架优势}
+本系统的后台主要是对机器学习模型的操作，因此自然选择了Python开发语言，而Django作为Python语言上应用最为广泛的Web开发框架之一，自然也成为了本系统后台的首选技术。
+利用Django的灵活性，本系统利用其URL分派系统接受客户端传来的预测、训练、标记等请求并对其处理，通过ORM框架将程序切片、模型训练数据快速本地化，以完成对系统后台的快速开发。
 
 \section{本章小结}
+本章首先介绍了目前流行的漏洞挖掘技术，并对其优劣势进行了说明，接着介绍了本系统使用的技术、工具和框架，并分别说明了使用这些技术、工具和框架的原因。在技术角度，本章依次介绍了污点分析技术、程序切片技术和BLSTM神经网络并对其优缺点进行了总结，分析了使用程序切片和BLSTM对污点传播会使污点分析更精确的原因；在工具角度，本章指出了使用Find-sec-bugs进行污点分析，使用Joana进行程序切片的原因及本系统对其进行的优化改进；最后简单介绍了Django框架以及其优点。
