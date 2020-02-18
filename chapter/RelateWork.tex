@@ -137,7 +137,7 @@
 正是因为存在这些不足，本文将在下文引入程序切片技术和LSTM来降低误报率。\\
 
 \subsection{Java污点分析工具选型}
-Java上的污点分析工具有很多，如FindSecBugs\footnote{\url{https://find-sec-bugs.github.io/}}(最初为FindBugs~\cite{taint:finding})，TAJ~\cite{taint:taj}。但对于安全扫描工具来说，除了污点传播引擎，针对漏洞定义好大量的入口点和汇聚点是扫描准确性的重要保证。findsecbugs作为较为经典的扫描工具，前人已经为预先定义了大量的污点传播入口点和汇聚点，并且支持自定义新的入口点和汇聚点，非常适合二次开发。
+Java上的污点分析工具有很多，如FindSecBugs\footnote{\url{https://find-sec-bugs.github.io/}，最初为FindBugs~\cite{taint:finding}，如今被拆分成Spotbugs和FindSecBugs插件，Spotbugs提供UI和数据流基本分析框架，FindSecBugs提供污点分析框架和大量扫描规则，下文中提到FindSecBugs实际指Spotbugs和FindSecBugs。}，TAJ~\cite{taint:taj}。但对于安全扫描工具来说，除了污点传播引擎，针对漏洞定义好大量的入口点和汇聚点是扫描准确性的重要保证。findsecbugs作为较为经典的扫描工具，前人已经为预先定义了大量的污点传播入口点和汇聚点，并且支持自定义新的入口点和汇聚点，非常适合二次开发。
 
 本系统保证准确性的手段在于利用机器学习对污点传播的误报进行改进，而不是定义大量污点传播规则，因此本文采用FindSecBugs进行污点传播分析。此外，本系统解决了原版FindSecBugs不能打印污点传播树的问题，使其更加易用。\\
 

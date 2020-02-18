@@ -2,7 +2,7 @@
 \section{系统整体概述}
 Java语言通常用于Web服务和Android程序开发，其中的大量安全漏洞类型可以通过污点传播分析法进行扫描，然而随着漏洞种类和开发方式不断丰富，污点分析存在失误，因此产生了大量误报，为此安全工程师不得不修改污点传播规则，以增加漏报为代价换取低误报，或是人工对大量误报漏洞判断，这两种做法无疑会增加潜在安全风险。
 
-本系统旨在提供对于Java代码的更精确的漏洞静态扫描功能，在源代码开发阶段进行代码安全扫描。相对于传统污点传播扫描工具，本系统结合了程序切片和BLSTM，从已有的误报漏洞片段进行分析辅助污点传播，从而降低误报率。系统总体架构如图~\ref{overview}所示，系统主要分为前端和后端两大部分，前端部分运行在用户端，包含污点分析模块、程序切片模块、部分预测模块，而在扫描系统后端运行在服务器端，包含预处理模块，另一部分预测模块和数据库。
+本系统旨在提供对于Java代码的更精确的漏洞静态扫描功能，在源代码开发阶段进行代码安全扫描。相对于传统污点传播扫描工具，本系统结合了程序切片和BLSTM，从已有的误报漏洞片段进行分析，降低污点传播误报率。系统总体架构如图~\ref{overview}所示，系统主要分为前端和后端两大部分，前端部分运行在用户端，包含污点分析模块、程序切片模块、部分预测模块，而在扫描系统后端运行在服务器端，包含预处理模块，另一部分预测模块和数据库。
 
 污点分析模块对开源的find-sec-bugs做改进，使之能够输出污点传播树，为误报预测提供基础数据；程序切片模块分析污点传播树，将其拆分为子污点传播流，利用Joana生成SDG并进行切片；数据预处理模块将切片模块的输出数据进行泛化和向量化处理，使之可以输出预测模块；误报预测模块利用切片模块的子污点传播流和其对应切片，通过BLSTM进行切片预测，从而对漏洞进行预测。本系统采用客户端采用Java进行开发，管理后台和程序预测服务由Python和Django开发。
 
@@ -110,7 +110,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 
 最后，很多企业目前已经拥有了适用于自身特点的基于污点传播的扫描器，为此，系统需要保证一定的扩展性，如将污点传播的解析抽象为接口，保证其可以基于任意污点传播工具进行预测。\\
 
-\subsection{系统用例描述}
+\subsection{系统用例描述}\label{sec:case}
 %用例图
 本系统的主要用户为软件开发工程师和软件安全运营人员，根据对系统需求的分析，得到系统用例如图~\ref{fig:case}所示， 软件开发工程师和运营人员均有基于污点分析的静态扫描、扫描结果切片和预测、漏洞实例标记这三个用例，其中基于污点分析的静态扫描存在两例扩展用例，即保存污点分析结果和读取分析结果，漏洞实例标记实际包含了标记正报结果和标记误报结果用例，安全运营人员还多出模型训练和发放客户端口令的用例。
 
@@ -409,9 +409,10 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 \end{table}
 
 \section{系统总体设计}
-本系统的框架图已在本节第一章图~\ref{overview}展示，下面将对系统设计的模块从逻辑视图、开发视图、进程视图、物理视图和场景视图五个方面详细介绍系统总体设计。% The 4+1 View Model of Architecture，Philippe Kruchten 
+本系统的框架图已在本节第一章图~\ref{overview}展示，下面将对系统设计的模块从逻辑视图、开发视图、进程视图、物理视图和场景视图五个方面~\cite{4+1view}详细介绍系统总体设计。% The 4+1 View Model of Architecture，Philippe Kruchten 
 
-首先是逻辑视图，该视图主要反应本系统的对象设计，如图~\ref{logicview}所示，图中 AbstractTaintDetector 是污点传播分析类的抽象类，与之相关的类有MethodDescriptor 和 Location ，其分别表示函数摘要和代码位置；
+% 逻辑视图=UML类
+本系统的逻辑视图如图~\ref{view:logic}所示，该视图主要反应了本系统的对象设计，图中 AbstractTaintDetector 是污点传播分析类的抽象类，与之相关的类有MethodDescriptor 和 Location ，其分别表示函数摘要和代码位置；
 AbstractIncjectionDetector 是注入类型漏洞分析器的抽象类，继承自 AbstractTaintDetector，相对于 AbstractTaintDetector 其主要增加了具有输出漏洞报告的功能，目前几乎所有污点传播漏洞类都继承该类；
 与 AbstractIncjectionDetector 相关的有 InjectionSink 类，该类表示污点汇聚点，其记录汇聚点可产生污点传播图，即 TaintFlowGraph 类；
 与 TaintFlowGraph 相关的有 TaintTreeGenerator ，即污点传播树生成类，其用于生成污点传播树，树上节点为 TaintTreeNode 类；
@@ -429,24 +430,119 @@ BLSTMRemotePredictor 为远程调用服务端预测接口的预测器，实现 P
 
 \begin{figure}[!htb]
 	\centering
-	\includegraphics[width=5in]{FIGs/chapter3/logicview.pdf}
-	\caption{系统逻辑视图}\label{logicview}
+	\includegraphics[width=5in]{FIGs/chapter3/viewlogic.pdf}
+	\caption{系统逻辑视图}\label{view:logic}
 \end{figure}
 
-% 逻辑视图=UML类图
-% 开发视图=开发者角度，模块框图，加切片、预测模型
-% 进程视图？
-% 部署图，组件图
+本系统的开发视图如图~\ref{view:dev}所示，该视图以开发者角度描述了模块的静态组织结构，具体来说本系统分为用户界面（UI），服务（Service）和第三方依赖包（Third-part Dependency）组成。
 
-% 场景视图=用例图
+UI主要包括了客户端包和管理员Web端包；Service中存在污点分析（TaintAnalysis）包，切片（Slice）包，Joana切片器（Joana）包，预处理（Preprocessing）包，预测模块客户端包（PredictCli）和服务端（PredictSrv）包，以及用于表示各种数据的 Data 包；第三方依赖包中主要有 Spotbugs 和 FindSecBugs，Spotbugs 包含了基本GUI界面和数据流分析框架，FindSecBugs包括了基本污点分析引擎，Joana 为本系统选用的切片器，Pytorch 用于构建 BLSTM 模型，Django 框架用于构建后端服务，Celery 和 Redis 用于训练请求的异步调用。
+
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=5in]{FIGs/chapter3/viewdev.pdf}
+	\caption{系统开发视图}\label{view:dev}
+\end{figure}
+
+本系统的进程视图如图~\ref{view:process}所示，用户端有管理端浏览器进程和代码扫描客户端进程，这两个进程通过 HTTP 协议与后端服务进程通信，服务进程通过TCP与模型训练任务进程和数据库进程通信，模型训练进程监听训练任务队列消息，收到训练消息后则开始模型训练，期间与数据库进程通信，获取训练配置信息。
+
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.7\textwidth]{FIGs/chapter3/viewprocess.pdf}
+	\caption{系统进程视图}\label{view:process}
+\end{figure}
+
+本系统的物理视图如图~\ref{view:physical}所示，该视图在部署方面描述了本系统的架构。
+
+在用户端部分，主要功能集中于扫描客户端，其包括了 GUI 界面和核心 jar 包（Core.jar），核心 Jar 包中含污点分析、切片和一部分预测模块。管理员用过浏览器使用本系统，主要完成发布模型训练任务、发放客户端 Token 或是管理数据对象的操作。
+
+用户端通过HTTP与应用服务器通信，应用服务器上部署了基于BLSTM预测的 Web 应用，以及配置好的 Django 管理员后台应用，服务器上还部署了 Celery Work，以便使管理员可以发布关于模型训练的异步任务和定时任务，训练数据和已经训练好的模型直接存放在服务器的文件系统上。
+
+服务端通过TCP与数据库连接，MySQL 数据库主要存放本系统的各种实体数据，Redis 数据库供 Celery 使用。
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.7\textwidth]{FIGs/chapter3/viewphysical.pdf}
+	\caption{系统物理视图}\label{view:physical}
+\end{figure}
+
+本系统的场景视图即用例图（图~\ref{fig:case}），在~\ref{sec:case} 章已经详细说明。
 
 \section{污点分析模块设计}
-\subsection{类图设计}
-函数调用图数据结构：
 
-污染传播树数据结构：
+污点分析模块是系统的基础模块，以用户提交的Jar包为输入，输出污点分析报告，本节分析流程和涉及到的类图两方面，说明该模块的设计。由于本模块主要是对FindSecBugs进行改进，使之可以在报告中输出污点传播树，因此本节只说明改进部分和与改进部分相关的类和流程，说明重点，对其它部分进行一部分简化。\\
 
 \subsection{流程设计}
+本系统的污点分析模块流程如图~\ref{taintprocess} 所示，首先用户输入被扫描的jar包对象，模块初始化漏洞报告，即产生一个空漏洞实例集合；接着其调用分析器对每一个类进行分析，对于第i个类，模块会对类函数的CFG进行拓扑排序，再依次对$i$类中的每个函数$k$进行污点分析，在污点分析时，本模块需要记录关于污点传播的有关信息，包括函数$k$内调用指令（如 \textit{invokestatic}、\textit{invokedynamic}、\textit{invokeinterface} 等）位置、函数返回指令位置（如 \textit{ireturn}、\textit{areturn}、\textit{dreturn} 等）和与污点汇聚点相关的代码语句位置信息，以便之后通过污点传播图和传播树产生漏洞报告。
+
+污点传播最终报告内容为污点传播树，但是污点实际上是以图的形式进行传播的，因此本模块设计在漏洞报告阶段先生成污点传播图，再根据图生成污点传播树。
+
+当应用中类和函数分析完后，模块会遍历所有污点汇聚点，这些污点汇聚点在分析时产生，记录了存在漏洞的汇聚点本身以及与污点传播到汇聚点的所有函数调用信息，对于每个汇聚点，利用汇聚点信息和分析时记录的函数调用语句位置，函数返回语句位置产生污点传播图。
+
+最后，根据污点传播图构造污点传播树，并将传播树表示为能由GUI展示的漏洞实例对象，放入漏洞集合中，当所有汇聚点遍历完成后，模块最终输出漏洞实例的集合。
+
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.8\textwidth]{FIGs/chapter3/taintprocessing.pdf}
+	\caption{污点分析模块流程图}\label{taintprocess}
+\end{figure}
+
+图中记录污点传播信息、构造污点传播图和构造污点传播树的流程较为复杂，将在第~\ref{sec:taintImp} 节中详细说明。\\
+
+\subsection{污点传播图类图设计}
+
+为了方便图的遍历，污染传播图的数据结构采用邻接链表的形式，其类图设计如图~\ref{taintGraphClass} 所示。
+
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.8\textwidth]{FIGs/chapter3/taintGraphClass.pdf}
+	\caption{污点传播图设计}\label{taintGraphClass}
+\end{figure}
+
+类 TaintFlowGraph 代表了一张污点传播图，图上的点由 Vertex 类表示，边由 Edge 类表示。TaintFlowGraph 中 entries 属性表示这张图入口函数的集合，这些函数只有出度没有入度，换句话说，污点在这些函数的上下文中传入，并传播至图中其他点，通常来说，这些函数有Web应用的视图层函数（如继承 \textit{HttpServlet} 子类中的 \textit{doGet()} 或 \textit{doPost()} 方法）或是客户端程序的入口函数（如 \textit{main()} 函数），该类中有向图中增加点的方法 \textit{addVertex()} 和向图中增加边的方法 \textit{addEdges()}，还有一个检查函数摘要是否存在于图中的方法 \textit{contains()}。函数摘要类 MethodDesc 在系统逻辑视图中已出现过，该类主要用来唯一标识类中的函数，含有属性 className、methodName、methodSig 和 isStatic，分别表示类名，方法名，函数签名和是否为静态类。
+
+顶点类 Vertex是一个抽象类，具体派生出表示函数的函数顶点类 MethodVertex 和 返回指令顶点类 RetVertex，MethodVertex 包含了一个函数摘要 caller ，以及该函数内连向其他顶点的边 edges，并且包含添加边的方法 \textit{addEdge()}。返回指令顶点类表示函数体中返回污点变量的返回值语句，其属性只有该语句类型 retType——通常来说 Java字节码 返回语句有 \textit{ireturn}，\textit{dreturn}，\textit{areturn} 等。不难发现，污点传播图上的顶点为函数或返回语句，并且只有 MethodVertex 才可以有出度，所以，在 TaintFlowGraph 类中的 \textit{addEdge()} 方法表示顶点的参数只能是一个函数摘要类型的顶点。
+
+最后设计与边相关的类，Edge 类，该类表示这一条边和连接这一边的对端顶点，peer 属性表示对端顶点， location 代表了两点之间通过哪一个代码位置与之相连，type 指这条边的类型，模块中主要有三种类型（“CALL”，代表函数调用；“SINK”，代表调用到汇聚点，“RET”，代表函数返回），orderedBlockNo 属性表示这条边在已排好序的控制流图（CFG）上属于第几个代码块，该属性的目的是为了方便排序，与排序相关的方法是 \textit{compareTo()} 方法。代码位置有SrcAnnotation 该类将在下一章详细说明。\\
+
+% 是否要举个例子或者话一张该图的数据结构？
+
+\subsection{污点传播树和漏洞报告类图设计}
+
+本模块的污点传播树结构体和漏洞报告类图设计如图~\ref{taintTreeAnnotationClass}所示。
+
+对于污点传播树，有一工具类TaintTreeGenerator，主要有两个方法：\textit{makeTree()} 和 \textit{makeAnnotation()}，\textit{makeTree()} 方法输入为污点传播图的一个入口点，根据这一入口点构造一棵传播树；\textit{makeAnnotation()}根据污点传播树构造出一注解列表，这些注解列表最终在GUI界面上展现污点传播树。
+
+考虑到污点传播树存在树形结构，并且节点存在运行顺序的上下关系的特征，本模块设计使用树的孩子兄弟结构来表示污点传播树。TreeNode 表示树上节点对象，其 id 表示了该节点的序号，其主要用来在反序列化时重构树；location 属性表明了该节点在程序中的位置，type 表示节点类型，在本系统中，该类型种类和传播图的 Edge 类型一致；firstChild 为 TreeNode 对象，指向其第一个子节点，具体来说，父节点是一个函数节点，而子节点可以使函数节点或是返回节点；nextSib 为 TreeNode 对象，指向同一深度的下一个叶子对象，具体地说，是同一函数上下文下的下一对象。TreeNode 派生出两类节点，一个是表示函数的节点 MethodTreeNode，其有一类型为 MethodDesc 的属性 caller，另一个是表示返回语句的节点 RetTreeNode，其有一属性 retType 表示了返回语句类型，与上文 RetVertex 类型一致。
+
+% 是否要举个例子或者画一张该图的说明该注解还以？
+漏洞注解类 BugAnnotation 和漏洞实例 BugInstance 类 是 Spotbugs 定义的数据类型，漏洞注解类该类表示了对漏洞的一行解释性文字。
+漏洞实例时应用中一个漏洞的基本单位，其有一个漏洞类型（type 属性）和多行漏洞注解（list 属性）组成。在漏洞注解类中， \textit{format()} 是该条注解在GUI界面上的显示文字时被调用的方法，\textit{writeXML()} 用于将注解保存为XML格式，以上为原生 Spotbugs 定义的方法，除此之外，为了方便反序列化，本模块还为其增加了 \textit{fromXML()}方法。NoteAnnotation、RetNodeAnnotation 和 MethodNodeAnnotation 对应于污点传播树的 TreeNode、RetTreeNode 和 MethodTreeNode 节点，对于抽象的节点注解类 NoteAnnotation 而言，其id、firstId，nextId 分别指向了 TreeNode的id，第一个孩子节点的id和第一个兄弟节点的id，depth 表示该节点距离树根的深度，具体类 RetNodeAnnotation 和 MethodNodeAnnotation 会将重现实现 BugAnnotation 类的三个方法，特别的，RetNodeAnnotation 的 firstId 恒为-1，因为返回语句的节点不会存在子节点。
+
+
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.8\textwidth]{FIGs/chapter3/taintTreeAnnotationClass.pdf}
+	\caption{污点传播树和漏洞报告类图设计}\label{taintTreeAnnotationClass}
+\end{figure}
+
+\subsection{污点分析器类图设计}
+
+污点分析器类图设计如图~\ref{taintDetectorClass}所示，Detector 类是所有分析器的基类，对于每一个 Detector 子类，Spotbugs会按流程图~\ref{taintprocess}所示使其分析目标 Jar 中的每个类，其中调用的就是类中 \textit{visitClassContext()} 方法，类遍历完成后，又会调用 \textit{report()} 方法产生报告。
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.8\textwidth]{FIGs/chapter3/taintDetectorClass.pdf}
+	\caption{污点分析器类图设计}\label{taintDetectorClass}
+\end{figure}
+
+AbstractTaintDetector 继承 Detector 类，该类也是记录污点传播信息的重要基类，其关键在于 returns 属性和 loc2callee 属性，returns记录了每一个函数中能够返回污点变量的 return 语句，loc2callee 记录了在函数调用发生时，invoke指令所在的函数位置和被调用的函数摘要。其会实现 Detector 的 \textit{visitClassContext()} 方法，并且在该方法内，调用 \textit{analyzeMethod()} 方法对每一个目标函数进行分析，对于污点传播信息的记录逻辑也在该方法内。对于特殊指令，如 \textit{return} 和 \textit{invoke}，\textit{analyzeMethod()} 会调用  \textit{analyzeInst()} 对指令进行分析。
+
+AbstractInjectionDetector 继承了 AbstractInjectionDetector，进一步实现了污点分析过程，即实现了 \textit{analyzeInst()} 和 \textit{report()} 方法，其属性 sinks 记录了目标应用的所有汇聚点，在所有类的分析完成后，依次调用 \textit{report()} 生成报告。
+
+污点汇聚点的类名为 InjectionSink，其属性 caller 和 sinkMethod 为调用敏感函数的最后一个函数，以及敏感函数的函数摘要，除此之外，所有将污点汇聚到该点的调用语句有被记录在其 locations 列表上，\textit{addLocation()} 就是记录调用语句发生位置的方法，\textit{getBugInstance()} 方法为产生报告的具体方法，被 \textit{AbstractInjectionDetector.report()} 方法调用，构造污点传播图、传播树和生成漏洞实例逻辑都在该方法中。
+
+上面提到的位置信息由 Location 类表示，其包含的属性有语句所在函数的函数摘要（mDesc），语句所在的字节码序号（byteCodeNo）和所在 CFG 代码块的序号（orderedBlockNo）。
+
+
 
 \section{程序切片模块设计}
 \subsection{类图设计}

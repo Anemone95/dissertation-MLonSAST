@@ -14,3 +14,4 @@ thesis.toc
 texput.log
 extra/*
 **/*.vsdx
+**/*.~vsdx

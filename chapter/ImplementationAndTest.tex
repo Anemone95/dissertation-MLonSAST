@@ -1,14 +1,216 @@
-\chapter{Java静态安全扫描工具实现和测试}
-\section{污点分析模块的实现}
-\subsection{构造污点传播函数调用图}
-%数据结构
+\chapter{Java静态安全扫描系统实现和测试}
+\section{一个XSS漏洞实例}
+为了说明扫描系统的实现，本小节将首先介绍一段简单的 XSS 漏洞Java Web代码，在接下来的几个小节中都将使用该代码辅助说明模块实现。
 
-%构造方法
+\begin{lstlisting}[language=Java, caption={一段含XSS漏洞的Java代码}, label={code:xss}]
+public class XSS extends HttpServlet {
+    @Override
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+                    throws IOException {
+        String p = request.getParameter("p");
+        String q;
+        if (p.startsWith("safe")){  q=safe(p);  } 
+        else { q=unsafe(p);  }
+        sink(response, q);
+    }
+    @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+                throws  IOException {
+        String p = request.getParameter("p");
+        sink(response, safe(p));
+    }
+    public String safe(String s) {
+        String r = s.replace("&", "&amp;").replace("<", "&lt;")
+                        .replace(">", "&gt;").replace(" ", "&nbsp;")
+                        .replace("\"", "&#34;").replace("'", "&#39;");
+        return r;
+    }
+    public String unsafe(String s) {
+        if (s.equals("clean")){
+            return "clean";
+        }  else {
+            return s;
+        }
+    }
+    public static void sink(HttpServletResponse response, String s) 
+                        throws IOException {
+        response.getWriter().write(s);
+    }
+}
+\end{lstlisting}
 
-\subsection{构造污点传播树}
-%数据结构
-%构造方法
-%数据保存形式
+代码如~\ref{code:xss} 所示，类 XSS 继承 HttpServlet，因此其可以通过重写 \textit{doGet()} 和 \textit{doPost()} 方法向用户提供HTTP服务，在 doGET 方法中，其从用户输出参数 \textit{p} 中获取值，接着判断值，若值以“safe”开头，则 \textit{q} 被赋值为 \textit{safe(p)}，否则 \textit{q} 被赋值为 \textit{unsafe(p)}，最终通过 \textit{sink()} 方法向用户返回 \textit{q}，在 \textit{doPOST()} 方法中，其直接调用 \textit{safe()} 方法，并将其返回。分析 \textit{safe()} 和 \textit{unsafe()} 方法不难发现，\textit{safe()} 方法是一个典型的过滤方法，而 \textit{unsafe()} 方法则存在安全性问题，这也造成 \textit{doGet()} 方法存在安全性问题，而 \textit{doPost()} 不存在安全问题。
+
+\section{污点分析模块的实现}\label{sec:taintImp}
+\subsection{污点分析时记录污点传播信息实现}
+在污点分析模块的设计章节中，提到了要想输出带有污点传播树信息的漏洞实例报告，必须在污点分析函数时记录函数内部信息，具体来说就是函数调用语句位置信息和函数返回位置信息。本小节将结合伪代码和具体事例，说明这一部分的实现。
+
+\begin{algorithm}[!htb]\footnotesize
+\caption{记录污点传播信息算法实现}
+\label{alg:noteTaint}
+\KwIn{$method$，函数上下文信息 }
+\KwOut{$R$, 返回语句位置集合；$I$, 调用语句位置集合；$T$, 于污点传播相关语句位置集合}
+$mDesc \leftarrow getDesc(method)$\\
+$R \leftarrow \varnothing $\\
+$I \leftarrow \varnothing $\\
+$T \leftarrow \varnothing $\\
+$initTaint \leftarrow -1$\\
+$dataflow \leftarrow getDataflow(method)$;\\
+\ForEach {block in dataflow} {
+    \ForEach {location in block} {
+        $inst \leftarrow location.getInst()$\\
+        \If {initTaint = -1} {
+            $initTaint \leftarrow dataflow.getFact(location).getNum()$\\
+        }
+        \If {inst is ReturnInst} {
+            $currTaint \leftarrow dataflow.getFact(location).getNum()$;\\
+            \If {currTaint \textgreater initTaint} {
+                $edge \leftarrow buildEdge(location, inst)$\\
+                $R \leftarrow R \cup \left\{ \left\langle mDesc, edge \right\rangle \right\}$\\
+            }
+        }
+        \ElseIf {inst is InvokeInst} {
+            $callee \leftarrow inst.getCallee()$;\\
+            $I \leftarrow R \cup \left\{ \left\langle location, callee \right\rangle \right\}$\\
+            $analyzeLocation(method, location, inst)$\\
+            \If {sink influenced by invoke}{
+                $T \leftarrow T \cup \left\{ location \right\}$\\
+            }
+        }
+    }
+}
+\end{algorithm}
+
+伪代码~\ref{alg:noteTaint} 说明了函数内记录传播信息的实现，该算法以一个函数的上下文信息 method 为输入，输出函数内返回语句的位置集合 $R$、调用语句位置集合 $I$ 和与污点传播相关语句位置集合 $T$ 。显然，实际的该算法实现在 \textit{AbstractTaintDetector.analyzeMethod()} 方法中，并且 $R$ 和 $I$ 实际上可以用 Map 类型记录，在函数内的$R$、$T$ 和 $S$ 会加入到类中的对应全局集合中。
+
+1-6 行为算法初始化阶段，包括获取函数的函数摘要，初始化算法输出集合 $R$、$I$和$T$，将函数初始被污染的参数个数 $initTaint$ 设为 -1（表示初始值还未设置），以及获取当前函数的数据流图。接下算法通过两层遍历，按数据流图顺序遍历每一个代码块中的每一条语句位置，在循环体中，首先根据语句位置获取语句内容，当$initTaint$未设置值时，将其赋值为获取第一条语句时的污染个数，通常该值小于等于该函数的参数个数（污点传播到一个或多个函数实参上）。
+
+若当前语句时一个返回值调用语句，由于一个函数内可能有若干条返回语句，并且返回语句未必会返回可能携带污点的变量，不传播污点的返回语句不需要记录在 $R$ 中，例如在代码片段~\ref{code:xss} 中，函数 \textit{unsafe()} 就存在两条返回语句，然而，第 25 行的返回语句并不可能传播污点，因此 25 行并不需要记录。 判断语句是否传播污点的方法是判断当前语句的传播的污点数量是否比刚进入时的污点数量多（根据FindSecBugs污点分析方法，即使函数原样返回实参，污点个数也会比初始值多1）。
+
+若语句是一条调用语句，首先通过该语句获取被调用的函数摘要，将当前位置和函数摘要一并放入 $I$ 中，不难看出 $I$ 实际上记录了该类的函数调用图，再做函数调用间分析，该分析已由原生 FindSecBugs 实现，这里不再赘述，根据分析结果判断汇聚点是否可以被当前函数调用影响，则向$T$中加入这一位置，以代码片段为例，当分析到第 7 行时，因为先前分析过 \textit{safe()} 可以传播污点（函数分析按调用图的拓扑排序进行），即p污点传播到了 \textit{q}，又因为污点 \textit{q} 作为参数流入了汇聚点 \textit{sink()}，即根据污点传播结果发现汇聚点受到这次调用的影响，便将第 7 行加入 $T$ 中，同理，被加入 $T$的还有第 5 行（污点入口点）、第 8 行、第 9 行、第 14 行和第 15 行。\\
+
+\pagebreak
+\subsection{构造污点传播图实现}
+
+在得到返回语句位置集合，调用语句位置集合和污点传播相关语句位置集合后，可以构造污点传播图，其构造方式如代码~\ref{code:taintGraph} 所示，实际存在于 \textit{InjectionSink.genBugInstance()} 方法中。
+
+\begin{minipage}{0.9\textwidth}
+\begin{lstlisting}[language=Java, caption={构造污点传播图的实现}, label={code:taintGraph}]
+TaintFlowGraph taintFlowGraph = new TaintFlowGraph();
+// 加入调用敏感函数的边
+AbstractInjectionDetector injDetector = (AbstractInjectionDetector) detector;
+taintFlowGraph.addEdge(sinkCaller,
+    new Edge(sinkMethod,
+    SourceLineAnnotation.fromVisitedInstruction(classContext, 
+        method,
+        instructionHandle),
+    Edge.SINK_EDGE,
+    0));
+// 增加函数调用位置
+for (Location location : locations) {
+    MethodDescriptor caller = location.getMethodDescriptor();
+    MethodDescriptor callee = injDetector.loc2callee.get(location);
+    SourceLineAnnotation src =
+        SourceLineAnnotation.fromVisitedInstruction(
+            location.getMethodDescriptor(), location.getPosition());
+    taintFlowGraph.addEdge(caller, callee, src, key.getOrderedId());
+}
+// 附加返回语句位置
+for(MethodDescriptor method : injDetector.returns.keySet()){
+    for(Edge edge: locations.get(method)){
+        taintFlowGraph.addEdge(method, edge);
+    }
+}
+\end{lstlisting}
+\end{minipage}
+
+首先，代码构造了一个空的污点传播图，将直接调用敏感函数的边加入图中，以代码~\ref{code:xss} 为例，将$sink() \rightarrow Writer.write()$ 加入图中；接着向图中添加相关函数调用的边（12-19 行），具体地说，遍历污点传播相关语句位置集合，对于每一个 location，获取其调用函数（location 记录了调用函数的函数摘要），再获取其被调用函数（只需查找调用语句位置集合 loc2callee 即可），随后在将 location 转化为 SourceLineAnnotation，将生成一条边并加入图中即可； 最后，向图中加入返回语句的点和边（21-27 行），只需要遍历先前得到的返回语句位置集合（injDetector.returns）即可。\\
+
+\subsection{构造污点传播树实现}
+在得到污点传播图后，只需要对图的每一入口进行一次遍历，就可以得到污点传播树，如算法~\ref{alg:buildTaintTree}所示，算法实现于 \textit{TaintTreeGenerator.makeTree()} 函数中：
+
+\begin{algorithm}[!htb]\footnotesize
+    \caption{构造污点传播树伪代码实现}
+    \label{alg:buildTaintTree}
+    \KwIn{$v$，污点传播图的一个入口}
+    \KwOut{$root$, 污点传播树的根节点}
+\SetKwProg{Fn}{Function}{}{}
+\Fn{newNode(e: Edge, nodeMap: Map$\left\langle MethodDesc, TreeNode \right\rangle$) : TreeNode }{
+    $node \leftarrow TreeNode(e, idx)$\\
+    $idx \leftarrow idx+1$\\
+    \If{e is CALL\_EDGE}{
+        \If{nodeMap.containsKey(node.caller)}{
+           $node.firstChild \leftarrow nodeMap.get(node.caller).firstChlid$\\
+        } 
+        \Else{
+           $nodeMap.put(node.caller, node)$\\
+        }
+    }
+    \Return{node}
+}
+\Fn{dfs(u: MethodVertex, root: TreeNode, nodeMap: Map$\left\langle MethodDesc, TreeNode \right\rangle$) : void }{
+    $i \leftarrow 0$\\
+    $currNode \leftarrow root$
+    \ForEach {e in sort(u.edges)} {
+        $v \leftarrow e.peer$\\
+        \If{v is MethodVertex}{
+             $searched \leftarrow False$\\
+            \If{nodeMap.containsKey(v.caller)}{
+                $searched \leftarrow True$\\
+            }
+        } 
+        \If{i=0}{
+            $currNode.firstChild \leftarrow  newTaintNode(e)$\\
+            $currNode \leftarrow currNode.firstChild$\\
+        }
+        \Else{
+            $currNode.nextSib \leftarrow newTaintNode(e)$\\
+            $currNode \leftarrow  currNode.nextSib$\\
+        }
+        \If{v is MethodVertex}{
+            \If{\~searched}{
+                $dfs(v, node, nodeMap)$\\
+            }
+        } 
+        $i \leftarrow i+1$\\
+    }
+}
+$idx \leftarrow 0$\\
+$root \leftarrow  TreeNode(v, idx)$\\
+$idx \leftarrow idx+1$\\
+$nodeMap \leftarrow \varnothing$\\
+$dfs(v, root, nodeMap)$\\
+\end{algorithm}
+
+算法输入一个传播图上的入口点 v，注意，该入口点不是第二章介绍的污点传入点，而是图上没有入度的点，实际上的污点传入点发生在 v 节点代表的函数中，算法输出污点传播树的树根，一棵污点传播树可能有多个污点汇聚点（污点从起点开始在不同的位置调用了敏感函数）。
+
+首先是一些初始化操作，序号 idx 设为 0，新建一个树节点为树根，idx 随即自增，nodeMap 初始化为空表，其可以记录已经处理过的函数。接下来通过深度优先搜索得到传播树，考虑到传播树数据结构是兄弟孩子表示法（孩子表示函数内的第一个节点，兄弟表示与当前语句同一函数上下文的下一个节点），因此先对起点 u 的边进行排序，处理每一条边 e，若e的对端顶点已被搜索过，则将 searched 标记为 True，在构造其叶子节点后不再向下搜索，若边为第一条边，则新建树节点将其设为当前节点的孩子，同时将当前节点切换为孩子节点（第 15-16 行），此后的边依次成为当前节点的下一兄弟节点（第 18-19 行）。注意新建节点的函数 \textit{newTaintNode(e)} 该函数首先根据当前序号将一条边新建成一个树节点，若该节点的函数在 nodeMap 中，即这个函数已被搜索过，则将新节点的孩子节点设为该函数内部的孩子节点，这样做的目的是不再重新分析已分析的函数内部，同时防止了递归函数时造成的搜索死循环。
+
+得到污点传播树后，对传播树再做一次深度搜索可以将书上的所有节点转化为可以显示在界面上的注解，其算法表示如下：
+
+\begin{algorithm}[!htb]\footnotesize
+    \caption{构造污点传播树伪代码实现}
+    \label{alg:buildAnnotation}
+    \KwIn{$n$，污点传播树树根；$depth$，树节点深度，初始化为0；$book$以处理的位置，初始化为$\varnothing$；$annotations$，当前注释集合，初始化为$\varnothing$}
+    \KwOut{$R$, 污点传播树的注解集合}
+    \SetKwProg{Fn}{Function}{}{}
+    \Fn{dfs(n:TreeNode, depth: int, book: Set<SrcAnnotation>, annotations: Set<SrcAnnotation>) : Set<SrcAnnotation> }{
+        \If{n is null}{
+            \Return{$\varnothing$}
+        }
+        \If{n in book}{
+            \Return{$\varnothing$}
+        }
+        $R \leftarrow annotations \cup \left\{ getAnnotation(n) \right\} $\\
+        $R \leftarrow R \cup dfs(n.firstChild, depth+1, book \cup \{n.location\}, annotations)$\\
+        $R \leftarrow R \cup dfs(n.nextSib, depth, book \cup \{n.location\}, A)$\\
+        \Return{R}
+    }
+\end{algorithm}
+
+对于污点传播树的搜索比传播图要简单的多，只要先将当前节点构造成，搜索其孩子节点和兄弟节点即可，注意兄弟孩子节点可能为空，因此在搜索前需要判断，若为空值则返回空集，此外，通过算法~\ref{alg:buildTaintTree} 构造的树节点实际上是存在回路的，在打印时需要考虑到这点，因此增加了 book 参数记录，限制当前节点不能延树干向上搜索。在一开始调用时，只需要将 depth 设为 0，book 和 A 设为空集即可。
+
+对于污点传播图的每一个入口函数，可以构造一至多棵污点传播树，对应的就有一至多组注解集合。
 
 \section{程序切片模块的实现}
 
