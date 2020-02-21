@@ -28,7 +28,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 		\midrule
 		R1	& 污点分析 				& 对于用户上传的代码进行污点分析，包括了过程内分析和过程间分析 & 高 \\
 		R2  & 构造污点传播图 	 & 对于代码中存在的汇聚点，构造其污点传播图 & 高 \\
-		R3  & 构造污点传播树	 & 对于一个污点传播类型的分析结果，用户最终看到一棵或多课污点传播树，其由污点传播图构造，一张污点传播图可能有多棵传播树，一个传播树上清晰标注有一个产生点和一或多个汇聚点 & 高 \\
+		R3  & 构造污点传播树	 & 对于一个污点传播类型的分析结果，用户最终看到一棵或多课污点传播树，其由污点传播图构造，一张污点传播图可能有多棵传播树，一个传播树上清晰标注有一个产生点和一个汇聚点 & 高 \\
 		R4  & 查看分析结果	 & 对于一个污点传播类型的分析结果，用户最终看到一棵或多课污点传播树，对于树上的叶子节点，用户能够知晓其代码位置 & 高 \\
 		R5  & 保存分析结果	   &用户可以对当前代码的漏洞分析详情进行保存，其中关键点在于对污点传播树进行序列化 & 中 \\
 		R6  & 读取分析结果 	   &用户可以对保存后的分析结果文件进行读取，二次查看漏洞详情，其中关键点在于对污点传播树结构的反序列化 & 中 \\
@@ -37,7 +37,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 	\label{dmd:taint}
 \end{table}
 
-程序切片模块对污点分析结果进行切片处理，该模块所涉及的功能性需求如表~\ref{dmd:slice}所示，该模块的主要功能是根据污点分析模块的分析结果进行后向程序切片，将其拆解，得到四个子需求，首先其需要污点分析的结果进行处理，接着对污点传播树进行拆分，对于每一个污点传播流，其包含有若干个程序切片需求，下一步对这些需求进行后向切片，最后将切片结果转换为有一定结构的文本。
+程序切片模块对污点分析结果进行切片处理，该模块所涉及的功能性需求如表~\ref{dmd:slice}所示，该模块的主要功能是根据污点分析模块的分析结果进行后向程序切片，将其拆解，得到四个子需求，首先其需要污点分析的结果进行处理，接着对污点传播树进行拆分，对于每一个污点传播流，其包含有若干个子污染流，下一步对这些需求进行后向切片，最后将切片结果转换为有一定结构的文本。
 
 \begin{table}[!htbp]\footnotesize %label table
 	\centering
@@ -49,7 +49,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 		\textbf{需求编号}&\textbf{需求名称}&\textbf{需求内容}&\textbf{优先级}\\
 		\midrule
 		R7	 & 处理污点分析结果 & 对污点分析的结果进行处理，对于每一个漏洞实例，反序列化的污点传播树并转化为适用于切片的传播树表达形式 & 高 \\
-		R8	 & 污点传播树拆分 & 将每一个传播树拆分为一或多个污点传播流，每一个污点传播流包含若干个<函数入口点，关注点>对（其为一个切片的单位） & 高 \\
+		R8	 & 污点传播树拆分 & 将每一个传播树拆分为多个子污点传播流，每一个污点传播流包含若干个<函数入口点，关注点>对（其为一个切片的单位） & 高 \\
 		R9   & 后向程序切片 & 对于每一个<函数入口点，关注点>， 结合用户上传的Jar包，进行后向程序切片 & 高 \\
 		R10 & 输出切片结果	 & 对于切片，程序能将其表示为文本，即对切片结构体序列化 & 高 \\
 		\bottomrule
@@ -415,11 +415,11 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 本系统的逻辑视图如图~\ref{view:logic}所示，该视图主要反应了本系统的对象设计，图中 AbstractTaintDetector 是污点传播分析类的抽象类，与之相关的类有MethodDescriptor 和 Location ，其分别表示函数摘要和代码位置；
 AbstractIncjectionDetector 是注入类型漏洞分析器的抽象类，继承自 AbstractTaintDetector，相对于 AbstractTaintDetector 其主要增加了具有输出漏洞报告的功能，目前几乎所有污点传播漏洞类都继承该类；
 与 AbstractIncjectionDetector 相关的有 InjectionSink 类，该类表示污点汇聚点，其记录汇聚点可产生污点传播图，即 TaintFlowGraph 类；
-与 TaintFlowGraph 相关的有 TaintTreeGenerator ，即污点传播树生成类，其用于生成污点传播树，树上节点为 TaintTreeNode 类；
-BugAnnotationWithSourceLines 是漏洞注解类，用于在用户界面上显示一个污点传播树的叶子节点；
+与 TaintFlowGraph 相关的有 TaintTreeGenerator ，即污点传播树生成类，其用于生成污点传播树，树上节点为 TreeNode 类；
+NodeAnnotation 是树节点注解类，用于在用户界面上显示一个污点传播树的叶子节点；
 若干棵污点传播树共同构成了一个漏洞实例——BugInstance类；若干个BugInstance类组合产生BugCollection，即一个项目的漏洞集合类；
-SliceRunner 为切片控制类，其首先调用报告翻译器对漏洞报告进行翻译，产生污点项目类——TaintProject，接着调用切片器对程序进行切片，最终产生切片项目类——SliceProject；ReportParser 和 Slicer分别为翻译器和切片器的接口；
-SpotbugsReportParser 为 Spotbugs 的报告翻译器，实现了翻译器接口，负责筛选find-sec-bugs的污点传播类型漏洞并进行翻译；
+SliceRunner 为切片控制类，其首先调用报告翻译器对漏洞报告进行翻译，产生污点项目类——TaintProject，接着调用切片器对程序进行切片，最终产生切片项目类——SliceProject；Parser 和 Slicer 分别为翻译器和切片器的接口；
+SpotbugsReportParser 为 Spotbugs 的报告翻译器，实现了翻译器接口，负责筛选 FindSecBugs 的污点传播类型漏洞并进行翻译；
 JoanaSlicer 为基于 Joana 的切片器，实现切片器接口；
 切片项目中包含切片的集合，切片类为 Slice；
 PredictRunner 为预测控制类其依赖预测器接口——Predictor 对漏洞实例进行预测，返回为预测项目类——PredictProject 的实例；
@@ -502,21 +502,21 @@ UI主要包括了客户端包和管理员Web端包；Service中存在污点分�
 
 顶点类 Vertex是一个抽象类，具体派生出表示函数的函数顶点类 MethodVertex 和 返回指令顶点类 RetVertex，MethodVertex 包含了一个函数摘要 caller ，以及该函数内连向其他顶点的边 edges，并且包含添加边的方法 \textit{addEdge()}。返回指令顶点类表示函数体中返回污点变量的返回值语句，其属性只有该语句类型 retType——通常来说 Java字节码 返回语句有 \textit{ireturn}，\textit{dreturn}，\textit{areturn} 等。不难发现，污点传播图上的顶点为函数或返回语句，并且只有 MethodVertex 才可以有出度，所以，在 TaintFlowGraph 类中的 \textit{addEdge()} 方法表示顶点的参数只能是一个函数摘要类型的顶点。
 
-最后设计与边相关的类，Edge 类，该类表示这一条边和连接这一边的对端顶点，peer 属性表示对端顶点， location 代表了两点之间通过哪一个代码位置与之相连，type 指这条边的类型，模块中主要有三种类型（“CALL”，代表函数调用；“SINK”，代表调用到汇聚点，“RET”，代表函数返回），orderedBlockNo 属性表示这条边在已排好序的控制流图（CFG）上属于第几个代码块，该属性的目的是为了方便排序，与排序相关的方法是 \textit{compareTo()} 方法。代码位置有SrcAnnotation 该类将在下一章详细说明。\\
+最后设计与边相关的类，Edge 类，该类表示这一条边和连接这一边的对端顶点，peer 属性表示对端顶点， location 代表了两点之间通过哪一个代码位置与之相连，type 指这条边的类型，模块中主要有三种类型（“CALL”，代表函数调用；“SINK”，代表调用到汇聚点，“RET”，代表函数返回），blockId 属性表示这条边所在的代码块，该属性的目的是为了结合 CFG 将污点传播图拆解为传播树，以及保证边的顺序。代码位置有SrcAnnotation 该类将在下一章详细说明。\\
 
 % 是否要举个例子或者话一张该图的数据结构？
 
 \subsection{污点传播树和漏洞报告类图设计}
 
-本模块的污点传播树结构体和漏洞报告类图设计如图~\ref{taintTreeAnnotationClass}所示。
+污点传播树是展示污点传播过程的重要数据结构，其中叶子结点中有一污点入口点和一污点汇聚点，其他叶子节点为函数或返回语句节点，树的层级关系反映出函数调用关系，一棵传播树代表了一个唯一的污点传播全流程，其结构体和漏洞报告类图设计如图~\ref{taintTreeAnnotationClass}所示。
 
-对于污点传播树，有一工具类TaintTreeGenerator，主要有两个方法：\textit{makeTree()} 和 \textit{makeAnnotation()}，\textit{makeTree()} 方法输入为污点传播图的一个入口点，根据这一入口点构造一棵传播树；\textit{makeAnnotation()}根据污点传播树构造出一注解列表，这些注解列表最终在GUI界面上展现污点传播树。
+对于污点传播树，有一工具类TaintTreeGenerator，主要有两个方法：\textit{makeTree()} 和 \textit{makeAnnotation()}，\textit{makeTree()} 方法输入为污点传播图的一个入口点，根据这一入口点构造若干棵传播树；\textit{makeAnnotation()}根据污点传播树构造出一注解列表，这些注解列表最终在GUI界面上展现污点传播树。
 
 考虑到污点传播树存在树形结构，并且节点存在运行顺序的上下关系的特征，本模块设计使用树的孩子兄弟结构来表示污点传播树。TreeNode 表示树上节点对象，其 id 表示了该节点的序号，其主要用来在反序列化时重构树；location 属性表明了该节点在程序中的位置，type 表示节点类型，在本系统中，该类型种类和传播图的 Edge 类型一致；firstChild 为 TreeNode 对象，指向其第一个子节点，具体来说，父节点是一个函数节点，而子节点可以使函数节点或是返回节点；nextSib 为 TreeNode 对象，指向同一深度的下一个叶子对象，具体地说，是同一函数上下文下的下一对象。TreeNode 派生出两类节点，一个是表示函数的节点 MethodTreeNode，其有一类型为 MethodDesc 的属性 caller，另一个是表示返回语句的节点 RetTreeNode，其有一属性 retType 表示了返回语句类型，与上文 RetVertex 类型一致。
 
 % 是否要举个例子或者画一张该图的说明该注解还以？
-漏洞注解类 BugAnnotation 和漏洞实例 BugInstance 类 是 Spotbugs 定义的数据类型，漏洞注解类该类表示了对漏洞的一行解释性文字。
-漏洞实例时应用中一个漏洞的基本单位，其有一个漏洞类型（type 属性）和多行漏洞注解（list 属性）组成。在漏洞注解类中， \textit{format()} 是该条注解在GUI界面上的显示文字时被调用的方法，\textit{writeXML()} 用于将注解保存为XML格式，以上为原生 Spotbugs 定义的方法，除此之外，为了方便反序列化，本模块还为其增加了 \textit{fromXML()}方法。NoteAnnotation、RetNodeAnnotation 和 MethodNodeAnnotation 对应于污点传播树的 TreeNode、RetTreeNode 和 MethodTreeNode 节点，对于抽象的节点注解类 NoteAnnotation 而言，其id、firstId，nextId 分别指向了 TreeNode的id，第一个孩子节点的id和第一个兄弟节点的id，depth 表示该节点距离树根的深度，具体类 RetNodeAnnotation 和 MethodNodeAnnotation 会将重现实现 BugAnnotation 类的三个方法，特别的，RetNodeAnnotation 的 firstId 恒为-1，因为返回语句的节点不会存在子节点。
+漏洞注解类 BugAnnotation 、漏洞实例 BugInstance 类和漏洞实例 BugCollection 类都是 Spotbugs 定义的数据类型，漏洞注解类该类表示了对漏洞的一行解释性文字。
+BugInstance 是应用中一个漏洞的基本单位，其有一个漏洞类型（type 属性）和多行漏洞注解（list 属性）组成。在 BugAnnotation 中， \textit{format()} 是该条注解在GUI界面上的显示文字时被调用的方法，\textit{writeXML()} 用于将注解保存为XML格式，以上为原生 Spotbugs 定义的方法，除此之外，为了方便反序列化，本模块还为其增加了 \textit{fromXML()}方法。NoteAnnotation、RetNodeAnnotation 和 MethodNodeAnnotation 对应于污点传播树的 TreeNode、RetTreeNode 和 MethodTreeNode 节点，对于抽象的节点注解类 NoteAnnotation 而言，其id、firstId，nextId 分别指向了 TreeNode的id，第一个孩子节点的id和第一个兄弟节点的id，depth 表示该节点距离树根的深度，具体类 RetNodeAnnotation 和 MethodNodeAnnotation 会将重现实现 BugAnnotation 类的三个方法，特别的，RetNodeAnnotation 的 firstId 恒为-1，因为返回语句的节点不会存在子节点。BugCollection类主要有漏洞实例组成，除此之外，其还记录有项目名称，用户提交的应用jar包（appJars）、依赖包（libJars）和源码包（srcs）。
 
 
 \begin{figure}[!htb]
@@ -545,8 +545,39 @@ AbstractInjectionDetector 继承了 AbstractInjectionDetector，进一步实现�
 
 
 \section{程序切片模块设计}
-\subsection{类图设计}
+
+程序切片模块是误报预测的基础，本系统优化了前人工作，能够对一个漏洞进行完整切片，本节从流程设计类图设计两方面介绍该模块的设计。\\
 \subsection{流程设计}
+
+本模块的流程设计如图~\ref{sliceProcessing} 所示，该模块的输出是用户提交的项目 Jar 包和在上一模块已经产生的漏洞报告中的漏洞实例集合，其输出是切片项目类，从类图分析可知，该项目类中含有所有漏洞及对应的所有切片。
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.8\textwidth]{FIGs/chapter3/sliceProcessing.pdf}
+    \caption{程序切片模块流程图}\label{sliceProcessing}
+\end{figure}
+
+因为 Spotbugs 中除了上文提到的污点传播检测器还存在其他漏洞检测器，其他检测器产生漏洞不属于本系统处理范围，在模块运行前，先要对漏洞报告进行过滤，同时将污点传播类型的漏洞反序列化漏洞注解，接着模块初始化一个具体的程序切片器，其中包括了对切片器的各种配置，具体会在实现章节介绍，以及初始化一个空的切片项目。接下来将会遍历漏洞实例集合中的每一个漏洞，对于一个污点传播漏洞，根据上一模块产生的漏洞实例注解集，还原出若干棵污点传播树，接下来就是对污点传播树进行拆解并切片的步骤，该步骤是本系统的核心步骤之一，包括了对污点传播树进行拆解，将其分为污点传播流作为为更小的切片任务，其具体实现也将在下一实现章节介绍；对污点传播树的切片结束后，将传播树信息和对应切片集合加入项目中，遍历完所有漏洞的污点传播树后，模块输出切片项目，项目内存在与漏洞相关的所有切片。\\
+
+\subsection{类图设计}
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter3/sliceClass.pdf}
+    \caption{程序切片模块类图}\label{sliceClass}
+\end{figure}
+
+本模块的类图设计如图~\ref{sliceClass} 所示。首先介绍模块的核心控制类 SliceRunner，该类用于读取污点传播报告，并最终产生每一漏洞实例的切片集合，其有三个属性成员：slicer，表示用于切片的切片器；parser，污点传播报告的翻译器；project，最终输出的切片项目。切片器和翻译器分别由 \textit{setSlicer()} 和 \textit{setParser()} 设置，\textit{run()} 方法是对漏洞报告切片的控制方法，其参数是一个监视器，上一章节所说的模块流程将在该方法内完成，\textit{sliceTaintTree()} 是对一个污点传播树切片的方法，可以看到其参数是一个树节点表示该传播树的树根，\textit{sliceFlow()} 是对一个传播流切片的方法。
+
+Monitor 类是监视器接口，用于方便各种耗时较长的函数中间返回信息，具体地说，该接口的 \textit{init()} 方法用于通知类开始某一流程，第一个参数为过程名，第二个参数表示过程共几个子过程；\textit{process()} 方法用于在每一个子过程完成后调用，其参数依次向监视器发送了当前子过程序号，过程总数，子过程输入，子过程输出，以及遇到的异常。该接口规范了系统内的任务进度报告模式，使外部能够自由的处理每一子过程并及时通知用户（例如，在每一子过程完成时向屏幕输出进度或是处理异常），除了切片控制类会使用该类外，未来的预测控制类也会使用。
+
+接下来设计与污点传播翻译器相关的类，Parser 是翻译器接口，其 \textit{rep2taintProject()} 方法用来将漏洞报告翻译为一个污点传播项目，同样，其也有一个监视器作为参数。 SpotbugReportParser 实现了该接口，其属性有 bugCollection，该属性在类初始化时传入，表示污点传播报告，caredVulns 表示污点传播漏洞类型白名单，该属性为静态属性，plugin 为本系统优化后的 FindSecBugs 插件（注意到反序列化函数 \textit{fromXML()} 在插件中）。SpotbugReportParser 的 parse() 方法将漏洞报告转化为了污点传播项目，而真正将漏洞实例还原为若干棵污点传播树的是来自 InstanceParser 类中的 \textit{parse()} 方法，该类成员变量 instance 为一漏洞实例，在类构造时传入。翻译的最终产出是 TaintProject 对象实例，该类中 bugInstances 表示了所有的污点传播方法，appJars 和 libJars 表示了用户提交的应用 Jar 包集合和第三方依赖 Jar 包集合，trees 为一组键值对，记录了一个 bugInstance 的所有污点传播树的树根节点。
+
+Slicer 是切片器的接口，\textit{config()} 方法用来配置一个切片器，其中三个列表参数分别代表引用 Jar 包，第三方依赖 Jar 包和黑名单类，当切片内容在黑名单类的上下文时，该条切片被舍弃，这主要用来过滤 Java Runtime 中的切片，或者排除其他第三方包的切片。\textit{computeSlice()} 方法是对一个污点传播流的切片方法，其参数是指以 MethodDesc 的函数为入口进行对关注点 Location 的切片，切片返回String类型，每条切片用“$\backslash$n”分割。 JoanaSlider 类是 Slicer 的一个具体实现，其 config 变量表示一个用于保存生成SDG 的配置信息，配置类名为 SDGBuilderConfig，由于该类涉及到实现细节，将在下一章进行讨论， sdgCache 用于缓存SDG，类中除了实现 \textit{config()} 和 \textit{computeSlice()} 方法，还有构造 SDG 的方法 buildSDG()，其参数为 SDG 的入口函数的函数摘要，\textit{makeMinimalScope()} 方法为构造最小搜索范围方法，被构造 SDG 时使用，clearCache() 方法用于清除各类缓存，在构造 SDG 后，主要切片工作由 JoanaSDGSlicer 梳理，该类在创建时传入 SDG 作为属性，先通过 \textit{getNodesAtLocation()} 获取关注点的 SDGNode，再通过 \textit{slice()} 方法切出所有相关的 SDGNode，并且通过 \textit{isRemovable()} 函数将一些无效节点删除（如非函数语句节点，抽象类节点等）。
+
+切片模块最终返回切片项目类 SliceProject 对象，该对象内部持有一污点传播项目对象，从传播树到污点传播流的映射（tree2flow 属性）和从污点传播边到切片的映射（edge2slice 属性）。TaintFlow 对象代表污点传播流，可以看到，其属性 entry 和 point 正好对应了切片器接口切片函数的参数，它的实际上代表了污点在一个函数内传播的过程。
+
+从本模块的类图设计上可以看出，本模块基本上实现了对切片器和污点分析器的解耦，在某些类上的泛型 T 表示了漏洞类型类，考虑到了今后不同污点分析工具的返回漏洞类型不同这一情况，即使今后需要换用其他污点分析引擎或是切片器，只需要重新实现 Parser 和 Slicer 再修改泛型就可重用本模块。
 
 \section{数据预处理模块设计}
 \subsection{类图设计}

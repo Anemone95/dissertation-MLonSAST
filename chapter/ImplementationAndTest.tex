@@ -2,42 +2,9 @@
 \section{一个XSS漏洞实例}
 为了说明扫描系统的实现，本小节将首先介绍一段简单的 XSS 漏洞Java Web代码，在接下来的几个小节中都将使用该代码辅助说明模块实现。
 
-\begin{lstlisting}[language=Java, caption={一段含XSS漏洞的Java代码}, label={code:xss}]
-public class XSS extends HttpServlet {
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-                    throws IOException {
-        String p = request.getParameter("p");
-        String q;
-        if (p.startsWith("safe")){  q=safe(p);  } 
-        else { q=unsafe(p);  }
-        sink(response, q);
-    }
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-                throws  IOException {
-        String p = request.getParameter("p");
-        sink(response, safe(p));
-    }
-    public String safe(String s) {
-        String r = s.replace("&", "&amp;").replace("<", "&lt;")
-                        .replace(">", "&gt;").replace(" ", "&nbsp;")
-                        .replace("\"", "&#34;").replace("'", "&#39;");
-        return r;
-    }
-    public String unsafe(String s) {
-        if (s.equals("clean")){
-            return "clean";
-        }  else {
-            return s;
-        }
-    }
-    public static void sink(HttpServletResponse response, String s) 
-                        throws IOException {
-        response.getWriter().write(s);
-    }
-}
-\end{lstlisting}
+\begin{minipage}[!htbp]{0.9\textwidth}
+\lstinputlisting[language=Java, caption={一段含XSS漏洞的Java代码}, label={code:xss}]{FIGs/chapter4/xssDemo.java}
+\end{minipage}
 
 代码如~\ref{code:xss} 所示，类 XSS 继承 HttpServlet，因此其可以通过重写 \textit{doGet()} 和 \textit{doPost()} 方法向用户提供HTTP服务，在 doGET 方法中，其从用户输出参数 \textit{p} 中获取值，接着判断值，若值以“safe”开头，则 \textit{q} 被赋值为 \textit{safe(p)}，否则 \textit{q} 被赋值为 \textit{unsafe(p)}，最终通过 \textit{sink()} 方法向用户返回 \textit{q}，在 \textit{doPOST()} 方法中，其直接调用 \textit{safe()} 方法，并将其返回。分析 \textit{safe()} 和 \textit{unsafe()} 方法不难发现，\textit{safe()} 方法是一个典型的过滤方法，而 \textit{unsafe()} 方法则存在安全性问题，这也造成 \textit{doGet()} 方法存在安全性问题，而 \textit{doPost()} 不存在安全问题。
 
@@ -87,109 +54,86 @@ $dataflow \leftarrow getDataflow(method)$;\\
 
 若当前语句时一个返回值调用语句，由于一个函数内可能有若干条返回语句，并且返回语句未必会返回可能携带污点的变量，不传播污点的返回语句不需要记录在 $R$ 中，例如在代码片段~\ref{code:xss} 中，函数 \textit{unsafe()} 就存在两条返回语句，然而，第 25 行的返回语句并不可能传播污点，因此 25 行并不需要记录。 判断语句是否传播污点的方法是判断当前语句的传播的污点数量是否比刚进入时的污点数量多（根据FindSecBugs污点分析方法，即使函数原样返回实参，污点个数也会比初始值多1）。
 
-若语句是一条调用语句，首先通过该语句获取被调用的函数摘要，将当前位置和函数摘要一并放入 $I$ 中，不难看出 $I$ 实际上记录了该类的函数调用图，再做函数调用间分析，该分析已由原生 FindSecBugs 实现，这里不再赘述，根据分析结果判断汇聚点是否可以被当前函数调用影响，则向$T$中加入这一位置，以代码片段为例，当分析到第 7 行时，因为先前分析过 \textit{safe()} 可以传播污点（函数分析按调用图的拓扑排序进行），即p污点传播到了 \textit{q}，又因为污点 \textit{q} 作为参数流入了汇聚点 \textit{sink()}，即根据污点传播结果发现汇聚点受到这次调用的影响，便将第 7 行加入 $T$ 中，同理，被加入 $T$的还有第 5 行（污点入口点）、第 8 行、第 9 行、第 14 行和第 15 行。\\
+若语句是一条调用语句，首先通过该语句获取被调用的函数摘要，将当前位置和函数摘要一并放入 $I$ 中，不难看出 $I$ 实际上记录了该类的函数调用图，再做函数调用间分析，该分析已由原生 FindSecBugs 实现，这里不再赘述，根据分析结果判断汇聚点是否可以被当前函数调用影响，则向$T$中加入这一位置，以代码片段为例，当分析到第 8 行时，因为先前分析过 \textit{safe()} 可以传播污点（函数分析按调用图的拓扑排序进行），即 p 污点传播到了 q，又因为污点 \textit{q} 作为参数流入了汇聚点 \textit{sink()}，即根据污点传播结果发现汇聚点受到这次调用的影响，便将第 8 行加入 $T$ 中，同理，被加入 $T$的还有第 5 行（污点入口点）、第 9 行、第 11 行和第 12 行。\\
 
-\pagebreak
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={构造污点传播图的实现}, label={code:taintGraph}]{FIGs/chapter4/taintGraph.java}
+\end{minipage}\\
+
 \subsection{构造污点传播图实现}
-
-在得到返回语句位置集合，调用语句位置集合和污点传播相关语句位置集合后，可以构造污点传播图，其构造方式如代码~\ref{code:taintGraph} 所示，实际存在于 \textit{InjectionSink.genBugInstance()} 方法中。
-
-\begin{minipage}{0.9\textwidth}
-\begin{lstlisting}[language=Java, caption={构造污点传播图的实现}, label={code:taintGraph}]
-TaintFlowGraph taintFlowGraph = new TaintFlowGraph();
-// 加入调用敏感函数的边
-AbstractInjectionDetector injDetector = (AbstractInjectionDetector) detector;
-taintFlowGraph.addEdge(sinkCaller,
-    new Edge(sinkMethod,
-    SourceLineAnnotation.fromVisitedInstruction(classContext, 
-        method,
-        instructionHandle),
-    Edge.SINK_EDGE,
-    0));
-// 增加函数调用位置
-for (Location location : locations) {
-    MethodDescriptor caller = location.getMethodDescriptor();
-    MethodDescriptor callee = injDetector.loc2callee.get(location);
-    SourceLineAnnotation src =
-        SourceLineAnnotation.fromVisitedInstruction(
-            location.getMethodDescriptor(), location.getPosition());
-    taintFlowGraph.addEdge(caller, callee, src, key.getOrderedId());
-}
-// 附加返回语句位置
-for(MethodDescriptor method : injDetector.returns.keySet()){
-    for(Edge edge: locations.get(method)){
-        taintFlowGraph.addEdge(method, edge);
-    }
-}
-\end{lstlisting}
-\end{minipage}
+\vspace{0.7cm}
+在得到返回语句位置集合、调用语句位置集合和污点传播相关语句位置集合后，可以构造污点传播图，其构造方式如代码~\ref{code:taintGraph} 所示，实际存在于 \textit{InjectionSink.genBugInstance()} 方法中。\\
 
 首先，代码构造了一个空的污点传播图，将直接调用敏感函数的边加入图中，以代码~\ref{code:xss} 为例，将$sink() \rightarrow Writer.write()$ 加入图中；接着向图中添加相关函数调用的边（12-19 行），具体地说，遍历污点传播相关语句位置集合，对于每一个 location，获取其调用函数（location 记录了调用函数的函数摘要），再获取其被调用函数（只需查找调用语句位置集合 loc2callee 即可），随后在将 location 转化为 SourceLineAnnotation，将生成一条边并加入图中即可； 最后，向图中加入返回语句的点和边（21-27 行），只需要遍历先前得到的返回语句位置集合（injDetector.returns）即可。\\
 
 \subsection{构造污点传播树实现}
-在得到污点传播图后，只需要对图的每一入口进行一次遍历，就可以得到污点传播树，如算法~\ref{alg:buildTaintTree}所示，算法实现于 \textit{TaintTreeGenerator.makeTree()} 函数中：
+
+在得到污点传播图后，对图的每一入口进行深度优先搜索，得到污点传播树集合，搜索算法~\ref{alg:buildTaintTree}所示，算法实现于 \textit{TaintTreeGenerator.makeTree()} 函数中。\\
 
 \begin{algorithm}[!htb]\footnotesize
     \caption{构造污点传播树伪代码实现}
     \label{alg:buildTaintTree}
-    \KwIn{$v$，污点传播图的一个入口}
-    \KwOut{$root$, 污点传播树的根节点}
-\SetKwProg{Fn}{Function}{}{}
-\Fn{newNode(e: Edge, nodeMap: Map$\left\langle MethodDesc, TreeNode \right\rangle$) : TreeNode }{
-    $node \leftarrow TreeNode(e, idx)$\\
-    $idx \leftarrow idx+1$\\
-    \If{e is CALL\_EDGE}{
-        \If{nodeMap.containsKey(node.caller)}{
-           $node.firstChild \leftarrow nodeMap.get(node.caller).firstChlid$\\
-        } 
-        \Else{
-           $nodeMap.put(node.caller, node)$\\
-        }
-    }
-    \Return{node}
-}
-\Fn{dfs(u: MethodVertex, root: TreeNode, nodeMap: Map$\left\langle MethodDesc, TreeNode \right\rangle$) : void }{
-    $i \leftarrow 0$\\
-    $currNode \leftarrow root$
-    \ForEach {e in sort(u.edges)} {
-        $v \leftarrow e.peer$\\
-        \If{v is MethodVertex}{
-             $searched \leftarrow False$\\
-            \If{nodeMap.containsKey(v.caller)}{
-                $searched \leftarrow True$\\
+    \KwIn{$v$，污点传播图的一个入口，$getCFG()$，获取当前函数的CFG}
+    \KwOut{$trees$, 污点传播树根的集合}
+    \SetKwProg{Fn}{Function}{}{}
+\Fn{dfs(u: MethodVertex, e: Edge, isSource: bool): Set<TreeNode>}{
+    $trees \leftarrow \varnothing$\\
+    $paths \leftarrow getPaths(u, u.edge, getCFG(u.caller), isSource)$\\
+    \ForEach {path in paths} {
+        $pathTrees \leftarrow \varnothing$\\
+        $pathTrees \leftarrow pathTrees \cup \{node(u, e)) \} $\\
+        $i \leftarrow 0$\\
+        \ForEach {edge in path}{
+            \If{edge.peer is MethodVertex}{
+                $subTrees \leftarrow dfs(edge.peer, edge, false)$\\
+                $newPathTrees \leftarrow \varnothing$\\
+                \For{tree in pathTrees}{
+                    \For{subTree in subTrees}{
+                        $newTree \leftarrow tree$\\
+                        $addNode(newTree, subtrees, i)$\\
+                        $newPathTrees \leftarrow newPathTrees \cup \{newTree\}$
+                    }
+                }
+                $pathTrees \leftarrow newPathTrees $\\
             }
-        } 
-        \If{i=0}{
-            $currNode.firstChild \leftarrow  newTaintNode(e)$\\
-            $currNode \leftarrow currNode.firstChild$\\
-        }
-        \Else{
-            $currNode.nextSib \leftarrow newTaintNode(e)$\\
-            $currNode \leftarrow  currNode.nextSib$\\
-        }
-        \If{v is MethodVertex}{
-            \If{\~searched}{
-                $dfs(v, node, nodeMap)$\\
+            \Else{
+                \For{tree in pathTrees}{
+                    $leaf \leftarrow node(edge.peer, edge)$\\
+                    $addNode(tree, leaf, i)$\\
+                }
             }
-        } 
-        $i \leftarrow i+1$\\
+            $i \leftarrow i+1$\\
+        }
+        
+        $trees \leftarrow trees \cup pathTrees$\\
     }
+    \Return{trees}\\
 }
-$idx \leftarrow 0$\\
-$root \leftarrow  TreeNode(v, idx)$\\
-$idx \leftarrow idx+1$\\
-$nodeMap \leftarrow \varnothing$\\
-$dfs(v, root, nodeMap)$\\
+$trees \leftarrow dfs(v, null,true)$\\
 \end{algorithm}
 
-算法输入一个传播图上的入口点 v，注意，该入口点不是第二章介绍的污点传入点，而是图上没有入度的点，实际上的污点传入点发生在 v 节点代表的函数中，算法输出污点传播树的树根，一棵污点传播树可能有多个污点汇聚点（污点从起点开始在不同的位置调用了敏感函数）。
+搜索函数即 $dfs()$，其参数有函数 u 、调用 u 的污点传播边（若入口函数则置空）以及是否为入口函数，输出该函数 u 的污点传播树集合。
 
-首先是一些初始化操作，序号 idx 设为 0，新建一个树节点为树根，idx 随即自增，nodeMap 初始化为空表，其可以记录已经处理过的函数。接下来通过深度优先搜索得到传播树，考虑到传播树数据结构是兄弟孩子表示法（孩子表示函数内的第一个节点，兄弟表示与当前语句同一函数上下文的下一个节点），因此先对起点 u 的边进行排序，处理每一条边 e，若e的对端顶点已被搜索过，则将 searched 标记为 True，在构造其叶子节点后不再向下搜索，若边为第一条边，则新建树节点将其设为当前节点的孩子，同时将当前节点切换为孩子节点（第 15-16 行），此后的边依次成为当前节点的下一兄弟节点（第 18-19 行）。注意新建节点的函数 \textit{newTaintNode(e)} 该函数首先根据当前序号将一条边新建成一个树节点，若该节点的函数在 nodeMap 中，即这个函数已被搜索过，则将新节点的孩子节点设为该函数内部的孩子节点，这样做的目的是不再重新分析已分析的函数内部，同时防止了递归函数时造成的搜索死循环。
+函数初始化返回的树集合 trees，由于传播树的代表了污点传播的一条路径，因此根据函数 u 的 CFG 遍历出所有程序执行路径，即 \textit{getCFG()} 函数，在该函数中，还需根据函数性质去除不符合要求的路径，如在污点入口函数处，路径上的第一个节点必须为污点入口点，若函数包含连向污点汇聚点的边，那么路径上必须包含该边。
+
+遍历每一条执行路径，接着建立当前路径上的传播树集合 pathTrees，初始化为空，并且将当前函数入口 u 所在节点作为树根加入集合中，用 i 表示路径序号。遍历路径上出现的污点传播边，若边的对端顶点是一个函数类型的点，则新建一个传播树集合 newPathTrees 并递归获取其子传播树集合，下面两层循环遍历当前传播树将其加上其子传播树后产生新的传播树，将其加入 newPathTrees 中，最后用新的树集合代替原先集合（第 12-20 行）。这一列的操作本质在于，pathTrees的树个数代表了当前路径的路径数 n，而 subTrees 中树的个数代表了函数内有的路径树 m，那么执行完该函数后，总的路径数应该是 $n \times m$，即 newPathTrees 中树的个数。若边的对端顶点是一个返回值顶点，则直接生成叶子节点并将其加入树中。
+$addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干中，若$i=0$将其加入至孩子节点，否则将其加入至最后一个兄弟节点后。
+
+对于入口函数 v（注意，该入口函数不是第二章介绍的污点入口点，而是图上没有入度的点，实际上的污点入口点发生在 v 节点代表的函数中），调用$dfs(v, null,true)$ 即可返回函数入口的多个污点传播树。
+
+上述算法也说明了，一个入口之所以有多个污点传播树，其根本原因是污点传播路径不同，例如代码~\ref{code:xss} 中的 \textit{doGet()} 函数，搜索后，可以得到如图~\ref{taintTree} 所示的两棵污点传播树：
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter4/taintTree.pdf}
+    \caption{\textit{doGet()} 函数的污点传播树}\label{taintTree}
+\end{figure}
+
 
 得到污点传播树后，对传播树再做一次深度搜索可以将书上的所有节点转化为可以显示在界面上的注解，其算法表示如下：
 
 \begin{algorithm}[!htb]\footnotesize
-    \caption{构造污点传播树伪代码实现}
+    \caption{构造污点传播树注解伪代码实现}
     \label{alg:buildAnnotation}
     \KwIn{$n$，污点传播树树根；$depth$，树节点深度，初始化为0；$book$以处理的位置，初始化为$\varnothing$；$annotations$，当前注释集合，初始化为$\varnothing$}
     \KwOut{$R$, 污点传播树的注解集合}
@@ -213,31 +157,142 @@ $dfs(v, root, nodeMap)$\\
 对于污点传播图的每一个入口函数，可以构造一至多棵污点传播树，对应的就有一至多组注解集合。
 
 \section{程序切片模块的实现}
-
-\subsection{后向切片的实现}
-% 先说流程
-
-% joana配置
-%突出解决了的几个坑（bug，无依赖切片，限制调用图的切片）
-
-% 处理的bug，SpringBoot类的包找不到类： 1. top.anemone.mlsast.core.classloader.AppWalaClassLoaderFactory top.anemone.mlsast.core.classloader.AppWalaClassLoader 3.top.anemone.mlsast.core.classloader.AppClassloader
-
-% 解决无依赖切片
-% 1.makewithroot 当A类继承B类，找不到B类时，A类将继承Object，
-% 2. top.anemone.mlsast.core.joana.AppEntrypoint#makeParameterTypes，即入口函数参数为缺失依赖时直接返回一个类型标记而不继续找
-% 3. top.anemone.mlsast.core.joana.AppEntrypoint#makeArgument，即遍历函数的参数为到找不到的类时，argument会新建一个空的虚节点代替
-
-% 对限制调用图的切片 edu.kit.joana.wala.core.prune.NodeLimitPruner
-
+在设计章节，本文已经对该模块的功能，主要流程和重要类图进行了介绍，在本节中，将从后向切片和整个流程的控制模块两方面具体介绍该模块的具体实现。\\
 
 \subsection{切片控制模块实现}
 
-% 对污点传播结果的反序列化和翻译
+\subsubsection{切片控制}
 
+切片控制模块的实现代码片段如代码~\ref{code:sliceControl} 所示，该代码出现在 SliceRunner 的 run() 方法中，主要功能是调用翻译器和切片器对一个目标项目中的所有漏洞切片，即执行流程图~\ref{sliceProcessing} 上的流程。
+
+代码的第1行首先调用 reportParesr 将项目进行过滤和翻译，得到 taintProject， 接着第三行通过项目中的应用 Jar 包和依赖 Jar包，对 slicer 进行配置。接着遍历污点传播类型的漏洞实例，对于每一个实例，获取其污点传播树集合（第11行），接着遍里污点传播树，对每一个污点传播树进行切片（第19行），每完成一个漏洞实例后向监视器汇报进度（第24-25行），并且若是 Joana 类型的切片器，对切片器进行清除缓存的操作，防止缓存过多造成 OOM，最后返回切片项目。\\
+
+\vspace{-0.7cm}
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={切片控制模块实现代码片段}, label={code:sliceControl}]{FIGs/chapter4/sliceControl.java}
+\end{minipage}
+\vspace{0.7cm}
+
+\subsubsection{过滤漏洞实例}
+本系统实现了切片预测逻辑和污点传播逻辑的解耦，从而产生了翻译漏洞报告这一过程。在 Spotbugs 报告类型的翻译器中，主要逻辑在于对漏洞过滤并还原污点传播树。对于污点传播树的还原可以通过对漏洞注解的二次遍历实现，这里不再赘述，本节主要通过代码~\ref{code:sliceFilter}，介绍过滤漏洞实例的实现。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={漏洞过滤代码片段}, label={code:sliceFilter}]{FIGs/chapter4/sliceFilter.java}
+\end{minipage}
+
+从第 3-4 行可以看出，模块按漏洞类型过滤掉了非污点传播类型漏洞、已经修复的漏洞（在 Spotbugs 中，已经修复的漏洞 \textit{isDead()} 函数返回 True），以及漏洞危害等级为低级的漏洞，在 Spotbugs 中，污点传播类漏洞实例的评级往往是根据污点传播情况制定的，而低级的漏洞往往不存在污点入口点而空有污点汇聚点，这种情况按照当前漏洞观念已经可以判断为误报，不需要本系统处理，在第 6-11 行过滤的漏洞其污点汇聚点没有被其他函数调用（相当于代码~\ref{code:xss} 中的 \textit{sink()} 函数没有被调用），这种漏洞实例也可以直接判断为误报。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={漏洞过滤代码片段}, label={code:caredVulns}]{FIGs/chapter4/caredVulns.java}
+\end{minipage}
+
+在按类型过滤漏洞时，使用了白名单过滤方式，目前模块内的白名单如代码~\ref{code:caredVulns}所示，列表中覆盖可绝大多数的 Web 安全问题，如XSS、SQL注入、SSRF等。
+
+\subsubsection{对污点传播树切片}
+
+在代码~\ref{code:sliceControl} 中，其使用 sliceTaintTree(node) 对一个污点传播树进行切片，该函数具体实现在代码~\ref{code:sliceTree} 中。\\
 % 对污点传播结果的dfs算法 top.anemone.mlsast.core.slice.DFSTaintTree
+\begin{minipage}{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={漏洞过滤代码片段}, label={code:sliceTree}]{FIGs/chapter4/sliceTree.java}
+\end{minipage}
+ 
+ 在代码中可以看出，对于待切片的污点传播树，首先将其拆解为污点传播流集合（第 2 行），再对每一污点传播流进行切片，将传播树与传播流的映射关系，以及传播流和切片的对应关系放入切片项目中。其中关键点是将污点传播树分解为污点传播流。
+ 
+ \begin{algorithm}[!htb]\footnotesize
+     \caption{从污点传播树中分解污点传播流集合}
+     \label{alg:getTaintFlows}
+     \KwIn{$r$: 污点传播树树根}
+     \KwOut{$flows$, 传播流的集合}
+     $flows \leftarrow \varnothing$\\
+     $dfs(r)$\\
+     \SetKwProg{Fn}{Function}{}{}
+     \Fn{dfs(s: TreeNode): bool}{
+        $nextNode \leftarrow s.firstChild$\\
+        \While{nextNode != null}{
+            \If{nextNode is MethodTreeNode}{
+                \If{nextNode.type is Edge.SINK}{
+                    $flows \leftarrow flows \cup \{Flow(s.caller, n.location) \}$\\
+                    \Return{$true$}\\
+                }
+                $hasSink \leftarrow hasSink \lor dfs(nextNode)$\\
+                \If{hasSink}{
+                    $flows \leftarrow flows \cup \{Flow(s.caller, n.location)\}$\\
+                    \Return{$hasSink$}\\
+                }
+            }
+            \Else{
+                $flows \leftarrow flows \cup \{Flow(s.caller, n.location)\}$\\
+                \Return{$hasSink$}\\
+            }
+            $nextNode \leftarrow nextNode.nextSib$
+        }
+     }
+ \end{algorithm}
 
-% 对每一个污染流进行切片代码
+算法~\ref{alg:getTaintFlows} 描述了分解过程，算法输入为一个传播树的树根，输出为传播流的集合，首先将初始化一个空的传播流集合，接着通过深度优先搜索得到所有传播流。在搜索过程中，依次遍历当前树节点下的所有孩子节点，如果节点是函数节点，先检查是否是汇聚点函数，如果是则将树根到当前位置作为一个污点传播流放入集合中，同时返回该函数内有汇聚点，如果不是则递归向下搜索，若该节点的函数内有污点汇聚点，将树根到当前节点位置放入集合中。若节点是返回值节点，则直接将从树根到当前节点的作为传播流放入集合中。
 
+从算法可以看出，传播流实际上是传播树上涉及的每一个函数和其对应的关注点，这里的关注点可能是返回语句，或是调用汇聚点函数的语句，例如，对于图~\ref{taintTree} 中的 Tree 1，可以得到 $doGet() \leftarrow sink()$、$safe() \leftarrow return$和$sink() \leftarrow write$污点传播流。
+
+\subsection{后向切片的实现}
+\subsubsection{基于 Joana 的后向切片}
+对于得到的传播流对象，需要由切片器其代码对其后向切片，本系统默认使用Joana对其切片，其主要过程如代码所示，该代码实现于 \textit{JoanaSlicer.computeSlice()} 方法中，展示部分删去了异常处理部分。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={基于 Joana 的后向切片}, label={code:sliceJoana}]{FIGs/chapter4/sliceJoana.java}
+\end{minipage}
+
+代码首先要获取函数 func 的 SDG ，若该函数在缓存中存在，则直接拿出（第 3 行），若不存在，则需要根据配置和入口生成 SDG（第 5-11 行）。接着使用 SDG 初始化一个 JoanaSDGSlicer，获取关注点行号上的所有 SDGNode 并且对其切片。切片完成后，对其按行号进行排序——这主要保证了每一次对相同传播流的切片的输出一致性。最后将其格式化为字符串。
+
+在 \textit{JoanaSDGSlicer.slice()} 函数主要实现利用 Joana 包中的 SummarySlicerBackward 类对程序进行切片，并对切片的 SDGNode 集合进行过滤。对于需要移除的 SDNode 类型由 isRemovable() 实现，如代码~\ref{code:sliceJoanaRemove}实现。从代码中可以看到，如果 SDGNode 没有对应源代码、不存在于用户Jar包中、源代码行号小于0、代表异常节点、代表虚节点或抽象节点则将其移除。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={判断 SDGNode 是否需要移除的代码片段}, label={code:sliceJoanaRemove}]{FIGs/chapter4/sliceJoanaRemove.java}
+\end{minipage}
+
+
+\subsubsection{SDG 的生成配置类}
+切片需要通过配置生成 SDG，然而默认的 Joana 配置并不具备缺失依赖下生成 SDG 的功能，为此本系统基于最新版本 WALA，重新编译了 Joana，添加自定义配置，已完成缺失依赖的 SDG 生成；当程序规模过大时，生成 SDG 时会消耗过多资源，针对本系统的切片使用场景，本模块切片器实现了限制调用图的切片，这同样是依赖配置实现的，另外，对于异形目录结构的Jar包（如 Spring Web 项目 Jar 包）默认配置会存在找不到类的问题，这依旧依赖配置实现，因此本节将详细介绍这些配置类，这些类的类图如图~\ref{JoanaConfig}所示。
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter4/sliceConfigClass.pdf}
+    \caption{生成 SDG 的配置类图}\label{JoanaConfig}
+\end{figure}
+
+为 Joana 打印日志，构造 JoanaOutputStream 类，其继承 Java 原生的 OutputStream，其 \textit{write()} 函数用来向控制台打印日志信息，其实例作为配置的 out 属性。
+
+SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于解决异形 Jar 包找不到类的问题，例如，Springboot 的项目 Jar 包中，类文件的地址前缀为 “$BOOT-INF/classes/\langle package \rangle.\langle class \rangle.class $”，首先，解决类查找问题，因为对于 Joana 切片来说，其首先通过 ClassHierarchyFactory 获取类层次图（IClassHierarchy），该图中包含了切片器能够分析的所有类，构造类的层次图首先需要遍历应用包中所有的类，其函数 makeWithRoot() 和 make() 都是构建调用图的函数，可以看到它们的第一个参数是分析范围，该对象可以通过传入的 jar 包路径创建，而第二个参数就是对 jar 包的类加载器工厂类（ClassLoaderFactory），注意这里的类加载器不等同于 Java 原生的 Classloader。类加载器为一接口（IClassLoader），其用于遍历分析范围类的所有类（\textit{iterateAllClasses()} 方法），为了解决类查找问题，首先需要在遍历时获取这些Jar包的正确类名，即重写 ClassLoader 并建立对应的工厂类。Joana 默认的（准确的说是Joana借助WALA的）类加载器为 ClassLoaderImpl，其 init() 方法通过 \textit{loadAllClasses()} 将 Jar 中的所有类读取至缓存，当调用iterateAllClasses() 时，只需遍历缓存中的类即可，因此本模块的 SliceWalaClassLoader 继承了 ClassLoaderImpl 并重写了 \textit{loadAllClasses()} 方法，其实现如代码~\ref{code:sliceWalaClassLoader} 所示，可以看到代码第 9-10 行，当包名中存在“/classes/”目录时，去除“/classes/”及前部分字符，只留下包名和类名。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={SliceWalaClassLoader 代码实现}, label={code:sliceWalaClassLoader}]{FIGs/chapter4/sliceWalaClassLoader.java}
+\end{minipage}
+
+接着模块需要解决类真实加载的问题，模块通过自定义Java原生ClassLoader（SliceJavaClassLoader）解决该问题，该类实现代码如代码~\ref{code:sliceJavaClassLoader} 所示，其关键在于代码第 9 行，即通过字符串尾部匹配来判断 classpath 下是否包含文件，如果包含则读取该类的内容至比特数组 classByte 中。 
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={自定义JavaClassLoader}, label={code:sliceJavaClassLoader}]{FIGs/chapter4/sliceJavaClassLoader.java}
+\end{minipage}
+
+最后，将 ClassHierarchyFactory 产生的类层次图配置在 SDGBuilderConfig 实例的 cha 属性中。
+
+很多用户提交的Jar包并不包含第三方包依赖信息，默认 Joana 无法完成切片，其关键问题在于以下两点：
+\begin{enumerate}
+    \item 当类继承于其他第三方包中类时，Joana 由于无法找到第三方类而无法构造该类。
+    \item 当函数参数类型为第三方包中类时，Joana 由于无法找到类原型无法分析。
+\end{enumerate}
+
+对于第一点，模块重新编译了 Joana 使其依赖于高版本的 WALA，在生成类层次图是，使用 \textit{makeWithRoot()} 方法生成，即当该类的父类为搜索范围之外的类时，将其继承自Object类（在 Java 中 Object 类是所有类的父类）。
+对于第二点，为此模块在 SliceEntrypoint 类中重新写了 Entrypoint 类的\textit{ makeParameterTypes()} 和 \textit{makeArgument()} 方法，\textit{ makeParameterTypes()} 用在函数调用语句发生时，返回函数调用参数类型，这里当调用的参数类型为范围外的类时，函数返回一个伪造的类型，\textit{ makeArgument()} 用于当函数调用发生时，为实参创建一个实例，并返回实例节点的序号，这里当实参类型为范围外的类时，伪造一个虚节点加入序号表中，并将其返回。
+此外，模块实现 SliceEntrypoint 类的工厂类 SliceEntryPointFactory，并将其配置在 SDGBuilderConfig 实例的 entrypointFactory 属性中。
+
+
+% TODO 解释函数调用图结构
+
+模块在 \textit{NodeLimitPruner.prune()} 中实现了对调用图剪枝已完成限制调用图的切片，代码\ref{code:slicePruner} 描述了其过程。首先，初始化需要保留的CGNode集合 keep，接着通过广度优先搜索，向 keep 中加入不超过 nodeLimit 数量的节点，最后返回 keep 即可。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={NodeLimitPruner 的实现}, label={code:slicePruner}]{FIGs/chapter4/slicePruner.java}
+\end{minipage}
 
 \section{数据处理模块的实现}
 
