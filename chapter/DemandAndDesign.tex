@@ -580,8 +580,35 @@ Slicer 是切片器的接口，\textit{config()} 方法用来配置一个切片�
 从本模块的类图设计上可以看出，本模块基本上实现了对切片器和污点分析器的解耦，在某些类上的泛型 T 表示了漏洞类型类，考虑到了今后不同污点分析工具的返回漏洞类型不同这一情况，即使今后需要换用其他污点分析引擎或是切片器，只需要重新实现 Parser 和 Slicer 再修改泛型就可重用本模块。
 
 \section{数据预处理模块设计}
-\subsection{类图设计}
+
+数据预处理模块是预测过程中承上启下的模块，其接受切片数据，并将其泛化和向量化，使之可以输入 BLSTM 模型。本节从模块流程类图设计和流程设计两方面介绍模块的设计思路。\\
+
+
 \subsection{流程设计}
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter3/preProcessing.pdf}
+    \caption{数据预处理模块类图}\label{preProcessing}
+\end{figure}
+
+图~\ref{preProcessing} 展示了本模块的流程图，首先模块输入上一模块产生的切片字符串，接着字符串经过各类泛化处理，变为由空格分隔单词字符串，再根据该字符串构建单词表，最后通过查表完成字符串的向量化，最终模块输出切片向量。
+
+泛化处理是模型准确性的重要保障，针对本系统应用场景，模块依次完成了五类泛化处理，即泛化数字常量，泛化字符串常量，泛化变量，泛化函数调用和泛化包名及方法名，其具体做法将在实现章节说明。\\
+
+\subsection{类图设计}
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter3/preClass.pdf}
+    \caption{数据预处理模块类图}\label{preClass}
+\end{figure}
+
+图~\ref{preClass} 展示了本模块的类图，Preprocessing 类用于对切片数据进行泛化理，其 rawSlice 属性为原切片字符串，strList 为字符串常量表，varList 为变量常量表，其 \textit{preprocess()} 方法为主要的泛化方法，输出以空格分隔的单词（token）。\textit{processNumber()} 、 \textit{processStr()} 和 \textit{processVar()} 分别是泛化数字常量、字符串常量和变量的方法，它们的输入为一行切片，输出为泛化后的切片字符串。processType() 为泛化返回值类型的方法，其输入为一返回值类型字符串，输出为泛化后字符串。
+
+Tokenizer 类用于将泛化后字符串转换为一维向量（向量化），其属性 freqGt 值只有当单词在数据集中出现频率大于改值时单词才有效，其还包含一单词表对象 tokenDict，\textit{buildDict()} 用于构造一个单词表，其输入为 pytorch 中定义的TextDataset，通过该对象可以遍历数据集中每一条数据，其输出为单词表。\textit{encode()} 方法用于将泛化字符串边为向量，\textit{decode()} 是其反函数，用于将向量还原成字符串，\textit{collateFn()} 用于将数据集中的 $\langle$切片, 标记$\rangle$ 转换为 $\langle$切片向量，字符串长度，标记$\rangle$ 的三元组，该三元组的每一元素类型均为 Tensor 以输入模型。
+
+TokenDict 为单词表类，用于记录单词和其整形 id 的对应关系，其属性 idx2word 和word2idx 分别记录了 id 至单词，和单词至 id 的对照表，属性 unkToken 记录了未知单词的值（默认为“$\langle UNK \rangle$ ”），\textit{addWord()} 方法是实现了将一单词放入单词表中，\textit{wtoi()} 和 \textit{itow()} 是一对互逆操作，用于将单词转换为数字 id，以及将 id 还原为单词， \textit{save()} 和 \textit{load()} 分别实现了将单词表保存为文件，以及从文件中反序列化为单词表的操作。
 
 \section{误报预测模块设计}
 \subsection{架构设计}
