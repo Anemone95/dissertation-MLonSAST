@@ -1,4 +1,4 @@
-.olauth
+*.olauth
 *.aux
 *.bbl
 *.blg

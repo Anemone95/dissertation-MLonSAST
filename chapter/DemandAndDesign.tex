@@ -549,7 +549,7 @@ AbstractInjectionDetector 继承了 AbstractInjectionDetector，进一步实现�
 程序切片模块是误报预测的基础，本系统优化了前人工作，能够对一个漏洞进行完整切片，本节从流程设计类图设计两方面介绍该模块的设计。\\
 \subsection{流程设计}
 
-本模块的流程设计如图~\ref{sliceProcessing} 所示，该模块的输出是用户提交的项目 Jar 包和在上一模块已经产生的漏洞报告中的漏洞实例集合，其输出是切片项目类，从类图分析可知，该项目类中含有所有漏洞及对应的所有切片。
+本模块的流程设计如图~\ref{sliceProcessing} 所示，该模块的输入是用户提交的项目 Jar 包和在上一模块已经产生的漏洞报告中的漏洞实例集合，其输出是切片项目类，从类图分析可知，该项目类中含有所有漏洞及对应的所有切片。
 
 \begin{figure}[!htb]
     \centering
@@ -611,9 +611,62 @@ Tokenizer 类用于将泛化后字符串转换为一维向量（向量化），�
 TokenDict 为单词表类，用于记录单词和其整形 id 的对应关系，其属性 idx2word 和word2idx 分别记录了 id 至单词，和单词至 id 的对照表，属性 unkToken 记录了未知单词的值（默认为“$\langle UNK \rangle$ ”），\textit{addWord()} 方法是实现了将一单词放入单词表中，\textit{wtoi()} 和 \textit{itow()} 是一对互逆操作，用于将单词转换为数字 id，以及将 id 还原为单词， \textit{save()} 和 \textit{load()} 分别实现了将单词表保存为文件，以及从文件中反序列化为单词表的操作。
 
 \section{误报预测模块设计}
+
+预测模块是系统最后也是最重要的模块之一，该模块参考先前研究者的工作，通过机器学习的预测漏洞是否为误报，从而提高扫描结果的准确性。本节将通过架构设计、类图设计、流程设计三个方面介绍该模块的设计。\\
+
 \subsection{架构设计}
+
+相较于先前模块，预测模块的特殊之处在于其不只存在于一处硬件资源上（其跨越了客户端和服务器），由于其结构较为复杂，因此本节首先介绍模块的架构设计，其架构图如图~\ref{predictArch}所示。
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{FIGs/chapter3/predict-architecture.pdf}
+    \caption{预测模块架构图}\label{predictArch}
+\end{figure}
+
+预测模块的一部分存在于客户端中，其作用在于代理远程服务器，以及对于一个漏洞实例中的每一个传播树中的每一个传播流切片进行预测，再根据预测结果判断一个实例是否是误报——预测控制。预测服务代理会将原始切片内容发送给预处理模块，预处理模块转化后将向量发送给服务端。
+
+服务端预测模块主要功能有基于 BLSTM 模型，对于单个污染流切片进行预测、切片标记以及将标记数据和切片存储于数据库和本地系统中。同时用户可以直接通过网页端，发起训练任务，模型训练任务同样也在服务端预测模块中完成。\\
+
 \subsection{类图设计}
+
+本模块类图如图~\ref{predictionClass} 所示，在客户端，有预测控制类 PredictRunner、预测器类 Predictor、切片类 Slice、标记类 Label、远程预测器代理类 BLSTMRemotePredictor、预测项目类 PredictProject 和预测器异常类 PredictorException；在服务端，有预测服务类 Views，模型控制类 ModelController，模型效果度量类 MetricCalculator 和神经网络模型类 BLSTM。
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{FIGs/chapter3/predictClass.pdf}
+    \caption{预测模块类图}\label{predictClass}
+\end{figure}
+
+预测器控制类用于对一个漏洞报告项目进行预测，其 predictor 属性是其预测的预测器实例，sliceRunner 是生成切片项目的控制器，sliceProject 保存切片模块的切片项目，predictProject 保存最终预测项目，其有设置切片器的方法 \textit{setSlicer()} 和设置预测器的方法 \textit{setPredictor()}，进行预测的方法为 \textit{run()}，预测进行前，若类中无切片项目，则会自动调用切片模块对其切片，接着再进行预测，最终方法返回预测结果。
+
+PredictProject 类为预测结果项目类，包含最终预测结果，其属性 bugIsSafe 为漏洞实例至漏洞是否为误报的映射表（若漏洞安全则说明误报），bug2safeFlow 记录了漏洞至安全流的映射，用于向开发者解释污点消失于那些污染流，flowIsSafe 记录了单条污染流是否为误报，sliceProject为切片模块的项目，bugsExceptions 记录预测运行时发生的异常。
+
+预测器接口 Predictor 用于实现漏洞预测控制和切片预测本身逻辑的解耦，其有两个方法：\textit{predictIsSafe()} 用于对一个切片进行预测，返回该切片是否是安全的，若切片安全，则说明污点在该污点流上无法传播，\textit{label()} 用于对切片进行标记。Slice 类和 Label 类分别对应以上两种方法的输入对象，Slice 类除了包含切片内容以外，还包括污染流对象，污染流哈希和项目名，Label 类包括了污染流对象，污染流哈希、项目名以及该污染流是否安全的标记。预测器在预测时允许抛出 PredictorException 异常，该异常类汇总含原始异常信息，以便错误跟踪。
+
+BLSTMRemotePredictor 实现了预测器接口，其属性 remoteServ 记录服务器地址，token 记录身份令牌，除了实现接口方法外，其还有 \textit{isAlive()} 方法用于判断到远程服务器的连接是否有效。
+
+Views 是远程服务器的对外服务类，其包含了验证口令是否合法的方法 verify()（对应于 BLSTMRemotePredictor.isAlive()，处理训练请求的方法 \textit{train()}，处理预测请求的方法 \textit{predict()}，以及处理标记请求的方法 \textit{label()}，其 model 属性代表当前最新的模型实例。
+
+Service 是模型的服务类，视图层接受到请求后，会将请求参数取出交给该类，再由该类调用 BLSTM 模型提供相应服务。这些服务主要有： \textit{load()} 用于加载一模型，其参数分为别为字典序列化文件的地址、BLSTM 序列化文件的地址、最小词频、词嵌入向量维度和隐藏层神经元个数； \textit{train()} 用于训练一个 BLSTM 模型，由于其参数较多这里省略，详细可以参照下一章中的表~\ref{sql:modelConfigTable}； \textit{predict()} 对应预测请求，其参数分别为序列化器、BLSTM 模型，以及一个切片字符串，返回该切片是否是安全的。\textit{test()} 用于测试一个神经网络模型准确率，前两个参数与 \textit{predict()} 方法相同，后面两个 String 类型参数分别为切片数据文件夹和标记数据文件夹。
+
+MetricCalculator 为度量计算器类，其通过一系列度量指标用于评估预测效果，其属性 predictLabels 代表预测的标签，realLabels 为真实标签，\textit{update()} 方法用于增加预测和真实标签数据，\textit{compute()} 方法用于产生一系列度量值，其输入为一系列度量方法的名称，输出为这些度量的具体值。
+
+BLSTM 类是 BLSTM 神经网络类，其继承于 pytorch 模型基类 nn.Module，本模块的神经网络有三层组成，首先是词嵌入层，对应属性为 wordEmbedding，其作用是将一个单词序号转换为一维向量，这样一组单词序列就可以转化为二维向量数据，接着是 BLSTM 层，对应属性为 lstm，nn.LSTM 为 pytorch 对象，模块只需将其指定属性指定为双向即可，最后为一个线性层 hidden2Label，该层用于将 BLSTM 输出映射到 0$\sim$1 的范围上。hiddenDim 记录隐藏层神经元数目，batchFirst 记录批量训练时的二维向量中，单条数据是以行向量形式给出（$batchFirst=true$）还是列向量形式给出（$batchFirst=false$），useGPU 指模型计算时是否需要用 GPU，这三个属性均需要在建立模型时给出。\textit{forward()} 方法为神经网络后向传播方法，其参数依次表示批量数据的二维向量，以及数据长度向量，返回预测结果，其会调用 \textit{getBiLastOutput()} 方法，该方法用于获取两个方向上的 LSTM 最后一个时刻的输出。\\
+
 \subsection{流程设计}
+
+本模块流程图如图~\ref{predictProcessing} 所示，本模块以切片模块的报告为输入，输出漏洞预测项目，其中记录每个漏洞是否为误报的预测结果。
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{FIGs/chapter3/predictProcessing.pdf}
+    \caption{预测模块流程}\label{predictProcessing}
+\end{figure}
+
+模块首先初始化并设置一个切片器实例，随即处理每一个漏洞实例，对于单个漏洞实例，漏洞传播模块已经将其分解为了若干棵污点传播树，于是模块开始遍历这些传播树，对于每一个传播树，程序切片模块又已将其分解为若干条程序切片，因此模块将依次预测这些切片，并记录切片安全性，当切片遍历完成后，根据切片结果评估传播树的安全性，根据污点传播规则，只要有传播树上的一条传播流是安全的，那么整个传播树即为安全，接着当一漏洞的传播树遍历完成后，可以根据传播树的安全性评估漏洞是否为误报，根据漏洞触发规则，只要有一棵传播树是不安全的，那么漏洞即是真实的，否则为误报，将每个漏洞实例预测完后，模块输出预测项目结果。
+
+本模块是系统中最后一个模块，也就是说，预测项目是本系统的最终输出，用户可以优先关注真实漏洞并展开修复工作，接着再观察误报漏洞是否为漏报，并对它们进行标记。
 
 \section{数据库设计}
 本系统的数据库主要用来存储用户身份信息、污点分析得到的污染流数据和标记、用于模型训练的参数配置信息以及模型本身信息。经过分类，可以总结为三类数据表：
@@ -625,6 +678,7 @@ TokenDict 为单词表类，用于记录单词和其整形 id 的对应关系，
 第三类是与模型本身相关的数据表，本系统使用BLSTM进行切片预测，对BLSTM训练和BLSTM结构本身涉及到一系列参数，为此将其保存在模型配置（Model\_Config）表中，供安全运营人员调整，对于已经训练好的模型，将其保存在BLSTM模型（LSTM\_Model）表中。
 
 与鉴权有关的数据表实体关系图如图~\ref{er:token} 所示，其中只有一张表，即客户端口令表，其中字段如表~\ref{sql:tokenTable} 所示，id 为一个口令的唯一标识；token 为一字符串，由管理员设置和发放，客户端连接时需要有一合法 token 才可与服务器通信；description 用于保存该口令的一些描述信息；create\_time 为该口令的创建时间。
+
 \begin{figure}[!htbp]
 	\centering
 	\includegraphics[width=0.5\linewidth]{FIGs/chapter3/token_er.pdf}
