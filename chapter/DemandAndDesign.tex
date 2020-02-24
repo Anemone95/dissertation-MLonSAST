@@ -270,7 +270,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 \end{table}
 
 % 6标记正报结果
-若漏洞实例被安全工程师判断为真实存在的，工程师可以对该漏洞标记为正报，此时所有污染流片段均自动标记为不安全，并且发送给服务端。标记正报结果用例描述如表~\ref{case:labeltp}所示。
+预测模块的学习模型为监督式学习模型，因此对漏洞报告结果进行标记是预测准确性提升的关键，在实际应用时，即使没有学习模块，开发者或是安全工程师也会对漏洞报告进行是否为误报的判断，因此本系统只是利用了用户的反馈使其构成回路，而并没有加重用户的使用负担。若漏洞实例被安全工程师判断为真实存在的，工程师可以对该漏洞标记为正报，此时所有污染流片段均自动标记为不安全，并且发送给服务端。标记正报结果用例描述如表~\ref{case:labeltp}所示。
 
 \begin{table}[!htbp]\footnotesize %label table
 	\centering
@@ -606,7 +606,7 @@ Slicer 是切片器的接口，\textit{config()} 方法用来配置一个切片�
 
 图~\ref{preClass} 展示了本模块的类图，Preprocessing 类用于对切片数据进行泛化理，其 rawSlice 属性为原切片字符串，strList 为字符串常量表，varList 为变量常量表，其 \textit{preprocess()} 方法为主要的泛化方法，输出以空格分隔的单词（token）。\textit{processNumber()} 、 \textit{processStr()} 和 \textit{processVar()} 分别是泛化数字常量、字符串常量和变量的方法，它们的输入为一行切片，输出为泛化后的切片字符串。processType() 为泛化返回值类型的方法，其输入为一返回值类型字符串，输出为泛化后字符串。
 
-Tokenizer 类用于将泛化后字符串转换为一维向量（向量化），其属性 freqGt 值只有当单词在数据集中出现频率大于改值时单词才有效，其还包含一单词表对象 tokenDict，\textit{buildDict()} 用于构造一个单词表，其输入为 pytorch 中定义的TextDataset，通过该对象可以遍历数据集中每一条数据，其输出为单词表。\textit{encode()} 方法用于将泛化字符串边为向量，\textit{decode()} 是其反函数，用于将向量还原成字符串，\textit{collateFn()} 用于将数据集中的 $\langle$切片, 标记$\rangle$ 转换为 $\langle$切片向量，字符串长度，标记$\rangle$ 的三元组，该三元组的每一元素类型均为 Tensor 以输入模型。
+Tokenizer 类用于将泛化后字符串转换为一维向量（向量化），其属性 freqGt 值只有当单词在数据集中出现频率大于改值时单词才有效，其还包含一单词表对象 tokenDict，\textit{buildDict()} 用于构造一个单词表，其输入为 pytorch 中定义的TextDataset，通过该对象可以遍历数据集中每一条数据，其输出为单词表。\textit{encode()} 方法用于将泛化字符串边为向量，\textit{decode()} 是其反函数，用于将向量还原成字符串。
 
 TokenDict 为单词表类，用于记录单词和其整形 id 的对应关系，其属性 idx2word 和word2idx 分别记录了 id 至单词，和单词至 id 的对照表，属性 unkToken 记录了未知单词的值（默认为“$\langle UNK \rangle$ ”），\textit{addWord()} 方法是实现了将一单词放入单词表中，\textit{wtoi()} 和 \textit{itow()} 是一对互逆操作，用于将单词转换为数字 id，以及将 id 还原为单词， \textit{save()} 和 \textit{load()} 分别实现了将单词表保存为文件，以及从文件中反序列化为单词表的操作。
 
@@ -630,7 +630,7 @@ TokenDict 为单词表类，用于记录单词和其整形 id 的对应关系，
 
 \subsection{类图设计}
 
-本模块类图如图~\ref{predictionClass} 所示，在客户端，有预测控制类 PredictRunner、预测器类 Predictor、切片类 Slice、标记类 Label、远程预测器代理类 BLSTMRemotePredictor、预测项目类 PredictProject 和预测器异常类 PredictorException；在服务端，有预测服务类 Views，模型控制类 ModelController，模型效果度量类 MetricCalculator 和神经网络模型类 BLSTM。
+本模块类图如图~\ref{predictClass} 所示，在客户端，有预测控制类 PredictRunner、预测器类 Predictor、切片类 Slice、标记类 Label、远程预测器代理类 BLSTMRemotePredictor、预测项目类 PredictProject 和预测器异常类 PredictorException；在服务端，有预测服务类 Views，模型控制类 ModelController，模型效果度量类 MetricCalculator 和神经网络模型类 BLSTM。
 
 \begin{figure}[!htbp]
     \centering

@@ -288,7 +288,7 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 % TODO 解释函数调用图结构
 
-模块在 \textit{NodeLimitPruner.prune()} 中实现了对调用图剪枝已完成限制调用图的切片，代码\ref{code:slicePruner} 描述了其过程。首先，初始化需要保留的CGNode集合 keep，接着通过广度优先搜索，向 keep 中加入不超过 nodeLimit 数量的节点，最后返回 keep 即可。
+用户上传的实际程序规模不可控，对其进行完整切片很可能造成物理资源耗尽或是程序崩溃，为此，模块在 \textit{NodeLimitPruner.prune()} 中实现了对调用图剪枝已完成限制调用图的切片，代码\ref{code:slicePruner} 描述了其过程。首先，初始化需要保留的CGNode集合 keep，接着通过广度优先搜索，向 keep 中加入不超过 nodeLimit 数量的节点，最后返回 keep 即可。
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Java, caption={NodeLimitPruner 的实现}, label={code:slicePruner}]{FIGs/chapter4/slicePruner.java}
@@ -304,11 +304,57 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 \section{误报预测模块的实现}
 
 \subsection{误报预测控制}
-%突出流程图
+误报预测控制负责执行图~\ref{predictProcessing} 中的主要流程，其代码如~\ref{code:predictRunner} 所示。
 
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={误报预测控制逻辑的实现}, label={code:predictRunner}]{FIGs/chapter4/predictRunner.java}
+\end{minipage}
+
+代码遍历 sliceProject 中的每一个实例、每个实例中的每个污点传播树，以及每个传播树中的污点传播流，从代码 20-23 行可以看出，只要树中的一条传播流是安全的，那么整个传播树就是安全的，对应的安全流会保存到 safeFlows 集合中。从第 27 行可以看到，只有当所有的污点传播树都是安全时，一个漏洞实例才可判断为误报，最后，将安全的流放入预测项目中作为证明，以及将是否为误报的结果也放入项目中。\textit{flowIsSafe()} 在调用远程预测服务前，会先检查缓存是否已有记录，若存在记录则直接将其返回，否则调用远程服务。\\
+
+\vspace{1cm}
 \subsection{误报预测时序图}
+误报预测模块存在客户端至服务器调用流程，本文通过时序图~\ref{predictTime} 说明误报预测的调用实现。
 
-\subsection{误报标记时序图}
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter4/predictTime.pdf}
+        \vspace{-1cm}
+    \caption{误报预测时序图}\label{predictTime}
+\end{figure}
+
+用户首先发起对污点传播报告的预测请求，接着预测控制逻辑进入循环，对于每一个切片调用 BLSTMPredictor 进行预测，BLSTMPredict 远程服务的本地代理，其会向远程服务器发送预测请求，服务器视图层收到预测请求后，首先从数据库查找该切片是否有标记，如果有标记则优先返回标记数据，否则先将切片一次保存至数据库和本地文件系统中，再向预测服务发起预测请求，预测服务收到请求后发送给 BLSTM 模型，模型将预测结果依次返回至用户。\\
+
+\vspace{2cm}
+\subsection{漏洞标记时序图}
+
+本模块的另一重要流程在于对漏洞实例的标记，时序图~\ref{labelTime} 展示了漏洞标记的实现过程。
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter4/labelTime.pdf}
+    \vspace{-1cm}
+    \caption{漏洞标记时序图}\label{labelTime}
+\end{figure}
+
+用户可以对一个漏洞进行误报或正报的标记，首先看误报标记流程，对于一个误报漏洞实例，用户首先需要提供证据，即指定污点消失于哪一段污染流中，接着GUI界面会生成一个 Label 实例并向预测器发送标记为安全污染流的请求，本地预测器会将请求转发到服务端的 View 层，View 层收到请求后将标记数据依次写入数据库和本地文件中，由于污染流哈希的唯一性，当数据库存在已有标签时会自动覆盖。
+
+对于一个正报标记，用户只需指定漏洞实例的一个传播树即可，因为一个真实的漏洞的只要有一棵传播树的污点传播成立，该漏洞就是真实存在的，因此 GUI 收到请求后会遍历传播树相关的所有切片，并发送标记为不安全的标签。对于每一个不安全标签的标记时序与安全标记时序相同，这里不再赘述。
+
+\subsection{批处理训练过程}
+
+% https://www.zhihu.com/question/32673260
+在设计章节，本文已经对模块的 BLSTM 模型设计做了介绍，该模型训练时的输入为切片向量集合，对应标记集合，输出为一个训练好参数的 BLSTM 模型。由于程序切片大小有差异，切片向量长度也是不一致的，对于时序型神经网络 BLSTM 来说，本身就具有接受不定长向量的能力，然而在实际训练时，为了保证训练效率和效果，往往会将一批切片向量和对应标记合并一为一批输入神经网络，再进行权重更新，这时一组切片向量需要转换为二维向量，即需要对末尾补 0，因此在BLSTM模型中，要考虑到补 0 的无效数据。
+
+Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn()}，该函数用于从数据集加载数据后，对数据进行最后处理，本模块根据需要构造的校对函数如代码~\ref{code:collateFn} 所示。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Python, caption={DataLoader 的加载器}, label={code:collateFn}]{FIGs/chapter4/collateFn.py}
+\end{minipage}
+
+% 神经网络foward 设计
+
+% 画示意图解释
 
 \section{系统测试与运行展示}
 \subsection{测试目标}
