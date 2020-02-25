@@ -121,7 +121,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 
 对于入口函数 v（注意，该入口函数不是第二章介绍的污点入口点，而是图上没有入度的点，实际上的污点入口点发生在 v 节点代表的函数中），调用$dfs(v, null,true)$ 即可返回函数入口的多个污点传播树。
 
-上述算法也说明了，一个入口之所以有多个污点传播树，其根本原因是污点传播路径不同，例如代码~\ref{code:xss} 中的 \textit{doGet()} 函数，搜索后，可以得到如图~\ref{taintTree} 所示的两棵污点传播树：
+上述算法也说明了，一个入口之所以有多个污点传播树，其根本原因是污点传播路径不同，例如代码~\ref{code:xss} 中的 \textit{doGet()} 函数，搜索后，可以得到如图~\ref{taintTree} 所示的两棵污点传播树。
 
 \begin{figure}[!htb]
     \centering
@@ -231,7 +231,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 
 算法~\ref{alg:getTaintFlows} 描述了分解过程，算法输入为一个传播树的树根，输出为传播流的集合，首先将初始化一个空的传播流集合，接着通过深度优先搜索得到所有传播流。在搜索过程中，依次遍历当前树节点下的所有孩子节点，如果节点是函数节点，先检查是否是汇聚点函数，如果是则将树根到当前位置作为一个污点传播流放入集合中，同时返回该函数内有汇聚点，如果不是则递归向下搜索，若该节点的函数内有污点汇聚点，将树根到当前节点位置放入集合中。若节点是返回值节点，则直接将从树根到当前节点的作为传播流放入集合中。
 
-从算法可以看出，传播流实际上是传播树上涉及的每一个函数和其对应的关注点，这里的关注点可能是返回语句，或是调用汇聚点函数的语句，例如，对于图~\ref{taintTree} 中的 Tree 1，可以得到 $doGet() \leftarrow sink()$、$safe() \leftarrow return$和$sink() \leftarrow write$污点传播流。
+从算法可以看出，传播流实际上是传播树上涉及的每一个函数和其对应的关注点，这里的关注点可能是返回语句，或是调用汇聚点函数的语句，例如，对于图~\ref{taintTree} 中的 Tree 1，可以得到 $doGet() \leftarrow sink()$、$safe() \leftarrow return$和$sink() \leftarrow write$污点传播流。\\
 
 \subsection{后向切片的实现}
 \subsubsection{基于 Joana 的后向切片}
@@ -285,7 +285,6 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 对于第二点，为此模块在 SliceEntrypoint 类中重新写了 Entrypoint 类的\textit{ makeParameterTypes()} 和 \textit{makeArgument()} 方法，\textit{ makeParameterTypes()} 用在函数调用语句发生时，返回函数调用参数类型，这里当调用的参数类型为范围外的类时，函数返回一个伪造的类型，\textit{ makeArgument()} 用于当函数调用发生时，为实参创建一个实例，并返回实例节点的序号，这里当实参类型为范围外的类时，伪造一个虚节点加入序号表中，并将其返回。
 此外，模块实现 SliceEntrypoint 类的工厂类 SliceEntryPointFactory，并将其配置在 SDGBuilderConfig 实例的 entrypointFactory 属性中。
 
-
 % TODO 解释函数调用图结构
 
 用户上传的实际程序规模不可控，对其进行完整切片很可能造成物理资源耗尽或是程序崩溃，为此，模块在 \textit{NodeLimitPruner.prune()} 中实现了对调用图剪枝已完成限制调用图的切片，代码\ref{code:slicePruner} 描述了其过程。首先，初始化需要保留的CGNode集合 keep，接着通过广度优先搜索，向 keep 中加入不超过 nodeLimit 数量的节点，最后返回 keep 即可。
@@ -296,10 +295,36 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 \section{数据处理模块的实现}
 
-\subsection{泛化处理的实现}
+数据处理模块将程序切片进行泛化和向量化处理，以保证神经网络的泛化性能，本节就泛化处理和向量化两方面说明该模块的实现。\\
 
-\subsection{向量化处理的实现}
+\subsection{泛化处理}
 
+在设计阶段，本文已经介绍了模块对程序切片的泛化主要分泛化数字常量、泛化字符串常量、泛化变量、泛化函数调用和泛化包名方法名五个方面，下面以 \textit{unsafe()} 函数的代码切片~\ref{code:sliceDemo}为例，介绍这些泛化的具体含义。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Java, caption={\textit{unsafe()} 函数的代码切片}, label={code:sliceDemo}]{FIGs/chapter4/sliceDemo.txt}
+\end{minipage}
+
+首先是泛化数字常量，数字常量在切片中往往带有数据信息，然而程序切片中的数字返回往往变化很大，为了泛化总结出共性，模块将三位数及以上的整数同一替换为“N3P”，将三位数及以上的负整数替换为“NN3P”，将科学计数法的数字替换为“NSMALL”，剩余三位数一下数字将其“\#()”去除保留数字字符串，如在示例切片第 3 行中的“\#(0)”，将其替换为 “0”。
+
+字符串常量在切片代码中非常常见，其内容也很可能是判断一个切片是否是安全的重要标准，如 SSRF 漏洞切片中发现有 “http”开头的字符串，那么漏洞很可能是误报，或是注入型漏洞出现特殊符号的替换字符串，那么这些漏洞也很可能是误报。因此，对于字符串要做特殊泛化处理，首先，若包含如“HTTP”，“HTTPS”且长度大于其4的字符串，将其泛化为“URL”；此外，若字符串长度大于 2，因为这些字符串是清洁字符串的概率较小，将其泛化为“STR S\{i\}”的形式，i 指该字符串为切片中出现的第 i 个字符串；否则保留其本身，因为其本身很可能是清洁类字符串。例如在第 2 行切片中出现的“\#(clean)”，则将其泛化为 “STR S1”（其为切片中出现的第一字符串）。
+
+由于切片对象为静态单赋值形式（SSA），以“v\{数字\}”的变量在切片中很常见，但是由于切片原因，这些数字并不是自然增长的，因此在泛化流程中，对其出现顺序进行映射，将其泛化为“VAR V\{i\}”的形式，其中 i 代表该变量是第 i 个出现在切片中的，例如第 2 行、第 3 行和第 4 行出现的 v6 变量，将其泛化为“VAR V1”，即该变量第 1 个出现在切片中。
+
+泛化函数调用主要是针对于调用切片和返回，对于调用切片，如第 2 行，将其调用函数前的“.”去除，若有形参（“\$”开头的变量）也将其去除，因为形参名称与漏洞本身无关，并在括号前后加空格，当做完经过该步骤后，第 2 行切片的函数调用部分泛化为“VAR V1 = p1 equals ( STR S1 ) ”，若函数调用返回为对象，则将其下划线形式改为“.”连接的形式，如最后一行中的“Ljava/lang/String”变为“java.lang.String”。
+
+泛化包名方法名，此类泛化主要对于 ENTER 类型的节点，如第 1 行，这里需要将切片才分为“包名\_方法名\_函数参数类型”，如将“demo.XSS.unsafe(java.la-\\ng.String)”泛化为“demo XSS unsafe ( java.lang.String )”。\\
+
+\subsection{建立单词表与向量化}
+
+在本模块中，泛化后字符串首先生成单词表，再按照单词表可以对句子进行向量化。其实现代码如代码~\ref{code:preTokenize} 所示。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Python, caption={建立单词表和向量化的实现}, label={code:preTokenize}]{FIGs/chapter4/preTokenize.py}
+\end{minipage}
+
+\textit{build\_Dict()} 方法输入为切片数据集，方法首先建立一个空的字典和词频表，接着遍历数据集中的所有切片，按空格拆分，并开始统计词频，遍历结束后，根据词频表，将词频大于 freq\_gt 的单词放入单词表，单词进入单词表的顺序将成为其id，小于等于该词频的单词会被映射为“UNK”，方法最终返回一个单词字典。
+\text{encode()} 方法用于将一个切片数据向量化，其只需要将切片拆分为单词，再通过字典将每一个单词映射为 id 即可，方法最终返回为一个句子的向量。\\
 
 \section{误报预测模块的实现}
 
@@ -343,8 +368,10 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 \subsection{批处理训练过程}
 
+用户在 Web 端可以发起训练任务，Celery Worker 收到训练任务后，会调用训练服务按指定配置训练 BLSTM 神经网络。
+
 % https://www.zhihu.com/question/32673260
-在设计章节，本文已经对模块的 BLSTM 模型设计做了介绍，该模型训练时的输入为切片向量集合，对应标记集合，输出为一个训练好参数的 BLSTM 模型。由于程序切片大小有差异，切片向量长度也是不一致的，对于时序型神经网络 BLSTM 来说，本身就具有接受不定长向量的能力，然而在实际训练时，为了保证训练效率和效果，往往会将一批切片向量和对应标记合并一为一批输入神经网络，再进行权重更新，这时一组切片向量需要转换为二维向量，即需要对末尾补 0，因此在BLSTM模型中，要考虑到补 0 的无效数据。
+该模型训练时的输入为切片向量集合，对应标记集合，输出为一个训练好参数的 BLSTM 模型。由于程序切片大小有差异，切片向量长度也是不一致的，对于时序型神经网络 BLSTM 来说，本身就具有接受不定长向量的能力，然而在实际训练时，为了保证训练效率和效果，往往会将一批切片向量和对应标记合并一为一批输入神经网络，再进行权重更新，这时一组切片向量需要转换为二维向量，即需要对末尾补 0，因此在BLSTM模型中，要考虑到补 0 的无效数据。
 
 Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn()}，该函数用于从数据集加载数据后，对数据进行最后处理，本模块根据需要构造的校对函数如代码~\ref{code:collateFn} 所示。
 
@@ -352,9 +379,23 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \lstinputlisting[language=Python, caption={DataLoader 的加载器}, label={code:collateFn}]{FIGs/chapter4/collateFn.py}
 \end{minipage}
 
-% 神经网络foward 设计
+可以看出，该函数的输入为一个向量化类和一批数据集合，该集合中存放切片字符串和对应标记对，对于每一个标记对，首先调用预处理模块对其泛化和向量化（第 3 行），接着按切片长度从长到短对一批数据排序，获取每条切片的长度记为 data\_length 变量，使用 pytorch 预定义的函数 \textit{rnn\_utils.pad\_sequence()} 对已排好序的一批数据进行补 0，此时 data\_x 类型已由原先的 list 类型变为二维张量（Tensor）类型，最后将这批数据的标记作为一维向量，最后函数返回切片张量（二维），切片长度张量（一维）和标记（一维）。
 
-% 画示意图解释
+接着切片张量和切片长度张量将传递至 BLSTM 类的 forward() 方法中，代码~\ref{code:blstm} 展示了神经网络后向传播的细节。
+
+\begin{minipage}[!htbp]{0.9\textwidth}
+    \lstinputlisting[language=Python, caption={DataLoader 的加载器}, label={code:blstm}]{FIGs/chapter4/blstm.py}
+\end{minipage}
+
+首先，对于切片张量进行词嵌入，其输出的 embeds 即变为三维张量，注意这里词嵌入已经指定了 padding 值，即将补其用的数字映射为全 0 向量。接着使用 pytorch 定义的 \textit{rnn\_utils.pack\_padded\_sequence()} 函数将实际上不等长的切片向量打包，接着打包数据传递至 BLSTM 层，再将 BLSTM 层输出还原至三维张量，注意，此时张量规模为记录数 $\times$ 最长语句长度 $\times$ BLSTM神经元个数。 \textit{get\_last\_output()} 会获取该三维张量上每一记录的双向传播时最后一时刻的神经元输出，并整合为一二维张量，最终输出到线性层，线性层返回预测结果。
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter4/blstmFoward.pdf}
+    \caption{批处理训练示意图}\label{blstmForward}
+\end{figure}
+
+图~\ref{blstmForward} 展示了 \textit{get\_last\_output()} 的具体做法，假设一批数据中存在两条数据 record 1 和 record 2， 它们有效的切片向量长度为 3 和 4，经过 BLSTM 神经网络后，正反方向分别产生了每个时刻上的输出，此时对于记录 1 来说，需要提取最后一个时刻的神经元输出，即 $O_3$ 向量和 $O_3'$ 向量，并将其合并，对于记录 2 来说，提取并合并为 $\left[O_{4}, O_{4}'\right]$，最后该批数据为二维张量，再输入至线性层，也就是说，线性层神经元个数为 BLSTM 神经元个数的两倍。
 
 \section{系统测试与运行展示}
 \subsection{测试目标}

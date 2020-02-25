@@ -1,0 +1,4 @@
+1 :: ENTR :: entry :: null :: demo.XSS.unsafe(java.lang.String)
+6 :: CALL :: call :: Z :: v6 = p1 $s .equals(#(clean))
+11 :: PRED :: IF :: Z :: if (v6 == #(0)) goto 11
+18 :: NORM :: compound :: Ljava/lang/String :: return v6
