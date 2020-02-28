@@ -528,18 +528,84 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 
 \subsection{健壮性和性能测试}
 
-\
+为了测试本系统的健壮性和性能，本文选择 Maven 中央仓库流行度 Top 100 的项目，在每个项目选择使用最多的构建版本作为测试对象~\footnote{\url{https://mvnrepository.com/popular?p=1}，抓取时间为 2019年10月24日，当前流行度榜单可能已经发生变化} 批量建立扫描任务进行测试，表~\ref{robustTest} 列出了测试结果，对于一个项目，本文将系统的最大扫描时间设为 4 小时，如果超过该时间系统仍未返回结果，则认为系统扫描失败。
+
+\begin{table}[!htb]\footnotesize
+    \centering
+    \caption{健壮性和性能测试结果}
+    % l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
+    \begin{tabular}{llllll}
+        \toprule
+        \textbf{测试 Jar 包}&\textbf{合法 Jar 包} & \textbf{扫描成功率} &\textbf{最短扫描时间(s)}&\textbf{平均扫描时间(s)} & \textbf{最长扫描时间(s)} \\
+        \midrule
+        96 & 82 & 100\%  & 7.21 & 67.22 &1815.24 \\
+        \bottomrule
+    \end{tabular}
+    \label{robustTest}
+\end{table}
+
+其中有 4 个构建为 aar 格式，由于系统只能输入 Jar 格式，因此实际参与测试的文件为 96 个 Jar 包文件，在 96 个 Jar 文件中，有 14 个Jar 文件内无 “.class”文件，系统均在能启动扫描时检测并提示用户 Jar 包不合法，并正常退出。对于剩下的 82 个文件，系统在限定时间内返回扫描结果，即扫描成功率为 100\%，至此本文认为该系统具有较高的健壮性。
+
+在系统性能方面，可以看出对于测试的 Jar 包，系统最短扫描时间仅有 7.21 s，对应的 Jar 包为 support-annotations-27.1.1.jar~\footnote{\url{https://mvnrepository.com/artifact/com.android.support/support-annotations/27.1.1}}，这一类包的特点在于其本身项目较小，项目中与安全有关的函数（Sink 点）调用也相对较少，因此其分析时间也较短；平均扫描时间为 67.22s，这也意味着对于绝大多数的 Jar 包，开发者在一分钟左右即可收到扫描结果；系统最长扫描时间为 1815.24s，对应的 Jar 包为 groovy-all-2.4.7.jar ~\footnote{\url{https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all/2.4.7}}，该包为 Groovy 语言的解释器，因此代码中会出现大量的安全相关函数和入口点，因此分析时间较长，但是系统仍能在一个小时之内给出扫描报告，对于大型项目而言，本文认为这是合理的。
+
+本系统对于各类 Jar 包有较高的健壮性，并且能较为及时的完成扫描任务，在保证代码安全同时不会影响代码开发进度。\\
 
 \subsection{系统运行展示}
 
+本系统为 C/S 架构的安全扫描系统，这里主要展示污点分析结果界面，设置预测服务器界面，预测结果展示、标记正报界面（漏洞可利用）和标记误报界面（漏洞不可利用）任务界面。
+
+图~\ref{show:taint} 展示了系统污点分析结果界面，该界面主要沿用了 Spotbugs 界面，在菜单栏可以新建，读取，保存扫描项目，对 UI 进行调整以及进行预测。左上方窗口显示了按类型整理的漏洞实例，由于用户还未对漏洞进行预测和标记，因此每个叶子节点的开头显示为“[P:UNK][L:ULB]”，左下方显示了一个漏洞实例的污点传播树——这是本系统的主要改进之处，右上方为对应的程序代码，右下方为关于该漏洞的解释信息。
+
 % 污点分析结果
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{FIGs/chapter4/taintAnalysis.png}
+    \caption{污点分析结果界面}\label{show:taint}
+\end{figure} 
+
+图~\ref{show:settingServer} 展示了设置预测服务器的界面，点击上方菜单栏“AI”中的“Setting Remote Server”将会出现该界面，设置预测服务器是进行误报预测的首要步骤，在设置服务器窗口中，用户需要指定服务器的 URL 地址和管理员发放的 token。
+
+% 设置预测服务器
+ \begin{figure}[!htbp]
+     \centering
+     \includegraphics[width=0.8\linewidth]{FIGs/chapter4/settingServer.png}
+     \caption{设置预测服务器界面}\label{show:settingServer}
+ \end{figure} 
+
+点击上方菜单栏“AI”中的“Slice and Predict”按钮，系统将对污点分析结果进行误报预测，图~\ref{show:predictResult} 展示了预测后一个被预测为误报的漏洞实例，在左上方，可以看到该漏洞实例的叶子节点已经变灰，且预测显示为“[P:FP]”（误报），在左下方，可以看到被预测为清洁函数的污染流已经由有清洁标记标注，这些标记用于向用户解释系统为何将其预测为误报。另外，可以看到图中的代码很像第二章中图~\ref{taintcase2} 中的代码，这说明对于真实的漏洞修复方案，本系统确实可以根据先前的学习，排除误报。
 
 % 预测结果
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{FIGs/chapter4/predictResult.png}
+    \caption{预测结果展示}\label{show:predictResult}
+\end{figure}
+
+对于报告中真实存在的漏洞，用户可以对其标记为正报，右击漏洞实例选择“Label as True Positive”即可弹出标记正报的界面，如图~\ref{show:labelTP} 所示，标记正报时用户必须在下拉菜单中选择一棵真实可以利用的污点传播树，点击提交后标记完成，完成后系统会更新左侧漏洞树，将“[L:ULB]”（未标记）转变为“[L:TP]”（标记为正报）。
 
 % 标记正报
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{FIGs/chapter4/labelTP.png}
+    \caption{标记正报界面}\label{show:labelTP}
+\end{figure}
+
+对于报告中不可利用的正报漏洞，用户可以将其标记为误报，右击漏洞实例选择“Label as False Positive”即可弹出标记误报的界面，如图~\ref{show:labelFP} 所示，标记误报时用户需要在下拉菜单中指定一条污点传播流，即对误报的标记实际是对安全的污点传播流标记，标记完成后系统会重新计算并更新漏洞树，用户可以多次点击标记，直至该漏洞的标记变为“[L:FP]”（标记为误报）。
 
 % 标记误报
-
-% 机器学习任务
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{FIGs/chapter4/labelFP.png}
+    \caption{标记误报界面}\label{show:labelFP}
+\end{figure}
 
 \subsection{系统效果评估}
+
+\subsubsection{评估方式}
+相对于传统污点分析系统，本系统主要采取神经网络预测降低污点分析报告误报来提升准确性的方法，因此本小结主要通过误报预测的准确性来评估系统效果，即相对于原有污点分析，若本系统的预测部分能够在漏报数量增长较小的情况下屏蔽大量误报，则认为本系统是有效的。
+
+本文使用准确率，查准率，查全率，F1 来评估误报预测准确性。以下为它们的计算方式。
+% 公式
+
+\subsubsection{数据集}
+本文使用 OWASP Benchmark v1.1~\footnote{https://owasp.org/www-project-benchmark/} 和 Juliet Test Suite for Java v1.3~\footnote{https://samate.nist.gov/SARD/testsuite.php}
