@@ -161,7 +161,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 
 \subsection{切片控制模块实现}
 
-\subsubsection{切片控制}
+\subsubsection{切片控制代码}
 
 切片控制模块的实现代码片段如代码~\ref{code:sliceControl} 所示，该代码出现在 SliceRunner 的 run() 方法中，主要功能是调用翻译器和切片器对一个目标项目中的所有漏洞切片，即执行流程图~\ref{sliceProcessing} 上的流程。
 
@@ -188,7 +188,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 
 在按类型过滤漏洞时，使用了白名单过滤方式，目前模块内的白名单如代码~\ref{code:caredVulns}所示，列表中覆盖可绝大多数的 Web 安全问题，如XSS、SQL注入、SSRF等。
 
-\subsubsection{对污点传播树切片}
+\subsubsection{分解污点传播树}
 
 在代码~\ref{code:sliceControl} 中，其使用 sliceTaintTree(node) 对一个污点传播树进行切片，该函数具体实现在代码~\ref{code:sliceTree} 中。\\
 % 对污点传播结果的dfs算法 top.anemone.mlsast.core.slice.DFSTaintTree
@@ -399,8 +399,144 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 
 \section{系统测试与运行展示}
 \subsection{测试目标}
+本系统测试主要安排功能测试和性能测试，在功能测试方面主要对系统功能的正确性进行测试；而健壮性和性能测试主要关注于本系统在扫描各类被测应用时的程序不崩溃，并能在合理时间内返回数据。
+
+在功能测试中，主要对第~\ref{sec:demand} 节提出的需求和用例进行测试，对污点分析、程序切片、预处理和误报预测各个模块的生成测试用例并对其进行测试。在健壮性测试中，主要对系统输入各类 Jar 包，检查系统是否能否在规定时间内产生扫描报告。
+
+表~\ref{tab:testenv}为测试的软硬件环境，在硬件方面，由于扫描任务是计算密集型任务，所以客户端选择了 CPU 较高配置的 E5-2630 和内存为 32G，并将 JVM 参数调整为“-Xmx8g -Xss500m”，服务端的硬件配置与客户端相同，软件上有Pytorch、Django、Celery、MySQL和Redis。
+
+\begin{table}[!htbp]\footnotesize
+    \centering
+    \caption{系统测试软硬件环境}
+    \begin{tabular}{cll}
+        \toprule
+        \multicolumn{2}{c}{设备与软件} & 备注信息 \\
+        \midrule
+        \multirow{3}[2]{*}{客户端} & CPU   & 型号为 Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz \\
+        & 内存    & 大小为 32G \\
+        & Java  & JVM 参数为“-Xmx8g -Xss500m ”\\
+        \midrule
+        \multirow{7}[2]{*}{服务端} 
+        & CPU   & 型号为 Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz \\
+        & 内存    & 大小为 32G \\
+        & Pytorch & 版本为 1.3.1 \\
+        & Django & 版本为 2.2.5 \\
+        & Celery & 版本为 4.4.0 \\
+        & MySQL & 版本为 8.0.12 \\
+        & Redis & 版本为 3.0 \\
+        \bottomrule
+    \end{tabular}%
+    \label{tab:testenv}%
+\end{table}%
+
 \subsection{功能测试}
-\subsection{性能测试}
+本章节主要针对各个模块的主要功能设计测试套件，并对每个测试套件进行具体测试。测试套件如表~\ref{testsuitcase} 所示。
+
+\begin{table}[!htb]\footnotesize %label table
+    \centering
+    \caption{系统测试用例套件}
+    % l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
+    \begin{tabular}{L{0.5cm}L{2cm}L{3cm}L{7cm}}
+        \toprule
+        \textbf{ID} & \textbf{所在模块} &\textbf{测试功能} &\textbf{测试内容}\\
+        \midrule
+        TS1 & 污点分析模块 & 基于污点分析的静态扫描  & 提交扫描任务，系统能够将污点分析结果显示在用户界面。\\
+        TS2 & 污点分析模块  & 污点分析结果的存取 & 对于一个污点分析结果，系统可以将其保存，并在打开时导入。\\
+        TS3 & 程序切片模块  & 程序切片 & 对于一个污点分析项目，对每一个漏洞进行切片，生成程序切片项目\\
+        TS4 & 预处理模块   & 切片泛化与向量化 & 对于一个切片文本，对其进行泛化和向量化\\
+        TS5 & 误报预测模块  & 预测漏洞安全性 & 对于一个漏洞实例，利用模型预测其是否为误报\\
+        TS6 & 误报预测模块  & 标记漏洞安全性 & 对于一个漏洞实例，标记该漏洞是否为误报\\
+        TS7 & 误报预测模块  & 模型训练 & 指定模型训练配置，根据配置训练模型\\
+        \bottomrule
+    \end{tabular}
+    \label{testsuitcase}
+\end{table}
+
+在污点分析模块，主要有测试套件 TS1，对用户提交的 Jar 包集合进行污点分析，并将污点分析结果以漏洞实例和对应若干棵污点传播树的形式返回给用户；测试套件 TS2，用户对于污点分析结果，进行存取操作。其包含的测试用例如表~\ref{testcase:taint} 所示，TS1 中含一个测试用例 TC1-1；TS2 套件中含两个测试用例，TC2-1 和 TC2-2， 分别测试对于结果的保存和读取。经过测试，得出的测试结果与预期结果相符，测试用例全部通过。
+
+\begin{table}[!htbp]\footnotesize
+    \centering
+    \caption{基于污点分析的静态扫描测试用例}
+    % l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
+    \begin{tabular}{L{0.07\textwidth}L{0.2\textwidth}L{0.18\textwidth}L{0.3\textwidth}L{0.09\textwidth}} 
+        \toprule
+        \textbf{ID}&\textbf{说明} & \textbf{输入}&\textbf{预期输出}&\textbf{测试结果}\\
+        \midrule
+        TC1-1 & 污点分析 & 用户提交的 Jar 包  & 污点分析结果（显示到界面） & 通过 \\
+        TC2-1 & 污点分析结果保存 & 污点分析结果  & 记录分析结果的XML文件 & 通过 \\
+        TC2-2 & 污点分析结果读取 & 记录分析结果的XML文件  &  污点分析结果 & 通过 \\
+        \bottomrule
+    \end{tabular}
+    \label{testcase:taint}
+\end{table}
+
+在程序切片模块，主要有一个测试套件TS3，即测试系统能否成功将污点分析项目转化为切片项目，在切片项目中，存在污点传播树和其对应的污点传播流，每个污点传播对应一条切片。该测试套件对应的测试用例如表~\ref{testcase:slice} 所示，其主要包含有 TC3-1，对上一模块产生的分析结果进行处理，从报告中还原污点传播树；TC3-2，拆解污点污点传播树，将一颗传播树拆解为子污染流的集合；TC3-3，对一个污染流进行后向切片，由于 Joana 自身存在 bug，当切片成功时，程序返回切片文本，在切片失败时扫描任务不崩溃，并返回错误原因。经过测试，以上测试用例输出均与预期相符，测试全部通过。
+
+\begin{table}[!htb]\footnotesize
+    \centering
+    \caption{程序切片测试用例}
+    % l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
+    \begin{tabular}{L{0.07\textwidth}L{0.2\textwidth}L{0.18\textwidth}L{0.3\textwidth}L{0.09\textwidth}}
+        \toprule
+        \textbf{ID}&\textbf{说明} & \textbf{输入}&\textbf{预期输出}&\textbf{测试结果}\\
+        \midrule
+        TC3-1 & 处理污点分析结果  & 污点分析结果 & 漏洞实例及其对应传播树集合 & 通过\\
+        TC3-2 & 拆解污点传播树  & 污点传播树 & 子污染流集合 & 通过\\
+        TC3-3 & 污染流后向切片  & 污染流 & 切片文本（若失败返回错误原因） & 通过\\
+        \bottomrule
+    \end{tabular}
+    \label{testcase:slice}
+\end{table}
+
+数据预处理模块的测试套件为 TS4，其用于测试改模快是否能对于一个切片文本进行泛化和向量化处理。其包含的测试用例如表~\ref{testcase:preprocessing} 所示，TC4-1 用于测试预处理模块能否对于一个切片文本进行有效泛化处理，对其输出单词序列；TC4-2 用于测试模块对于单词序列集合，能否将其转化为向量集合和对应的单词表，在输入时，单词表为可选项，若不存在单词表则新建，存在则根据已有单词表进行向量生成。经过测试，以上测试用例输出均与预期相符，测试全部通过。
+
+\begin{table}[!htb]\footnotesize
+    \centering
+    \caption{数据预处理模块测试用例}
+    % l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
+    \begin{tabular}{L{0.07\textwidth}L{0.2\textwidth}L{0.18\textwidth}L{0.3\textwidth}L{0.09\textwidth}}
+        \toprule
+        \textbf{ID}&\textbf{说明} & \textbf{输入}&\textbf{预期输出}&\textbf{测试结果}\\
+        \midrule
+        TC4-1 & 泛化处理  & 切片文本 & 单词序列 & 通过\\
+        TC4-2 & 向量化处理  & 单词序列集合和单词表（可选） & 单词对照表和向量集合 & 通过\\
+        \bottomrule
+    \end{tabular}
+    \label{testcase:preprocessing}
+\end{table}
+
+误报预测模块的测试套件有 TS5，对漏洞实例安全性进行预测；TS6，对漏洞实例安全性进行标记；TS7，对已有新数据进行模型训练。它们对应的测试用例如表~\ref{testcase:predict} 所示，安全性实例预测套件对应的测试用例有 TC5-1，对切片文本进行安全性预测，由于切片文本与污染流成一一对应关系，切片文本安全即污染流安全，测试检查系统是否能返回预测结果，并同时将污染流保存到文件系统和数据库中；TC5-2，对一个漏洞实例进行误报预测，测试给定任意漏洞实例和对应传播树的集合，系统能否返回漏洞是否为误报。安全性标记对应的测试用例有 TC6-1，标记污染流安全性，对于单个污染流标记其是否安全，系统需要将该标记数据存储至数据库和文件系统中，更新预测结果；TC6-2，标记可利用的传播树，系统需要将其对应的所有污染流标记为不安全，其对应的漏洞也应标记为不安全。模型训练对应的测试用例有 TC7-1，用户在后台新建训练配置，系统将其配置保存至数据库；TC7-2，用户发起训练请求，系统异步完成请求，并将训练好的模型保存至数据库和文件系统。经过测试，以上测试用例输出均与预期相符，测试全部通过。 
+
+\begin{table}[!htb]\footnotesize
+    \centering
+    \caption{误报预测模块测试用例}
+    % l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
+    \begin{tabular}{L{0.07\textwidth}L{0.2\textwidth}L{0.18\textwidth}L{0.3\textwidth}L{0.09\textwidth}}
+        \toprule
+        \textbf{ID}&\textbf{说明} & \textbf{输入}&\textbf{预期输出}&\textbf{测试结果}\\
+        \midrule
+        TC5-1 & 切片文本安全性预测 & 污染流和对应切片 & 预测结果，同时污染流保存到文件系统和数据库 & 通过\\
+        TC5-2 & 漏洞误报预测  & 漏洞实例和对应传播树集合 & 漏洞是否为误报 & 通过\\
+        TC6-1 & 标记污染流  & 污染流切片和标记 & 更新预测结果，标记存储至数据库和文件系统中 & 通过\\
+        TC6-2 & 标记可利用的传播树  & 污点传播树 & 更新预测结果，所有对应的污染流标记为不安全并存储至数据库和文件系统 & 通过\\
+        TC7-1 & 新建训练配置 & 训练配置 & 生成配置存储至数据库 & 通过\\
+        TC7-2 & 发布训练任务 & 训练任务请求 & 异步进行任务训练，并将训练完成的数据保存到数据库和文件系统 & 通过\\
+        \bottomrule
+    \end{tabular}
+    \label{testcase:predict}
+\end{table}
+
+\subsection{健壮性和性能测试}
+
 选择数据量较大的jar包进行测试
+
 \subsection{系统运行展示}
+
+
 \subsection{系统效果评估}
+
+% 污点分析结果
+
+% 预测结果
+
+% 

@@ -1,4 +1,4 @@
-def build_dict(dataset: TextDataset) -> WordTokenDict:
+def build_dict(dataset: TextDataset, freq_gt: int) -> WordTokenDict:
     _dict = WordTokenDict()
     word_freq = {}
     for sentence, label in dataset:
