@@ -1,10 +1,10 @@
 \chapter{Java静态安全扫描系统需求分析与设计}
 \section{系统整体概述}
-Java语言通常用于Web服务和Android程序开发，其中的大量安全漏洞类型可以通过污点传播分析法进行扫描，然而随着漏洞种类和开发方式不断丰富，污点分析存在失误，因此产生了大量误报，为此安全工程师不得不修改污点传播规则，以增加漏报为代价换取低误报，或是人工对大量误报漏洞判断，这两种做法无疑会增加潜在安全风险。
+Java语言通常用于Web服务和Android程序开发，其中的大量安全漏洞类型可以通过污点传播分析法进行扫描，然而随着漏洞种类和开发方式不断丰富，污点分析存在大量误报，为此安全工程师手动设计更精巧的污点传播规则，或以增加漏报为代价换取低误报，或人工对大量误报漏洞判断，这两种做法无疑会增加潜在安全风险。
 
-本系统旨在提供对于Java代码的更精确的漏洞静态扫描功能，在源代码开发阶段进行代码安全扫描。相对于传统污点传播扫描工具，本系统结合了程序切片和BLSTM，从已有的误报漏洞片段进行分析，降低污点传播误报率。系统总体架构如图~\ref{overview}所示，系统主要分为前端和后端两大部分，前端部分运行在用户端，包含污点分析模块、程序切片模块、部分预测模块，而在扫描系统后端运行在服务器端，包含预处理模块，另一部分预测模块和数据库。
+本系统旨在提供对于 Java 代码的更精确的漏洞静态扫描功能。相对于传统污点传播扫描工具，本系统结合了程序切片和 BLSTM，从已有的误报漏洞片段进行分析，降低污点传播误报率。系统总体架构如图~\ref{overview}所示，系统主要分为前端和后端两大部分，前端部分运行在用户端，包含污点分析模块、程序切片模块、部分预测模块，而在扫描系统后端运行在服务器端，包含预处理模块，另一部分预测模块和数据库。
 
-污点分析模块对开源的find-sec-bugs做改进，使之能够输出污点传播树，为误报预测提供基础数据；程序切片模块分析污点传播树，将其拆分为子污点传播流，利用Joana生成SDG并进行切片；数据预处理模块将切片模块的输出数据进行泛化和向量化处理，使之可以输出预测模块；误报预测模块利用切片模块的子污点传播流和其对应切片，通过BLSTM进行切片预测，从而对漏洞进行预测。本系统采用客户端采用Java进行开发，管理后台和程序预测服务由Python和Django开发。
+污点分析模块对开源的 FindSecBugs 做改进，使之能够输出污点传播树，为误报预测提供基础数据；程序切片模块分析污点传播树，将其拆分为子污点传播流，利用Joana生成SDG并进行切片；数据预处理模块将切片模块的输出数据进行泛化和向量化处理，使之可以输出预测模块；误报预测模块利用切片模块的子污点传播流和其对应切片，通过BLSTM进行切片预测，从而对漏洞进行预测。本系统采用客户端采用Java进行开发，管理后台和程序预测服务由Python和Django开发。
 
 \begin{figure}[htb]
 	\centering
@@ -16,7 +16,10 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 \subsection{功能性需求}
 本系统功能性需求分析按污点分析模块，程序切片模块，预处理模块和误报预测模块四个方面进行。
 
-污点分析模块由污点分析引擎对用户提交的jar文件进行扫描，产生初步结果，该模块所涉及的功能性需求如表~\ref{dmd:taint}所示，其主要功能为污点分析，而对于用户来说，系统需要友好的展现污点分析结果，即存在构造污点传播树和查看分析结果的需求，污点传播树由污点传播图构造而来，因此存在构造污点传播图需求，此外，污点分析是一项耗时操作，用户（尤其是开发工程师）可能会对一次污点分析结果进行保存，交给安全工程师进行漏洞验证，因此系统最好还需有保存分析结果和读取分析结果功能。
+污点分析模块由污点分析引擎对用户提交的jar文件进行扫描，产生初步结果，该模块所涉及的功能性需求如表~\ref{dmd:taint}所示，其主要功能为污点分析，而对于用户来说，系统需要友好的展现污点分析结果，即查看分析结果的需求，分析结果的主要部分是向用户展示污点传播路径，污点传播路径由污点传播树表示，因此存在构造污点传播树和查看分析结果的需求，污点传播树由污点传播图构造而来，因此存在构造污点传播图需求，此外，污点分析是一项耗时操作，用户（尤其是开发工程师）可能会对一次污点分析结果进行保存，交给安全工程师进行漏洞验证，因此系统最好还需有保存分析结果和读取分析结果功能。
+
+\newcounter{requireCounter}
+\setcounter{requireCounter}{1}
 
 \begin{table}[!htbp]\footnotesize %label table
 	\centering
@@ -27,12 +30,12 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 		\toprule
 		\textbf{需求编号}&\textbf{需求名称}&\textbf{需求内容}&\textbf{优先级}\\
 		\midrule
-		R1	& 污点分析 				& 对于用户上传的代码进行污点分析，包括了过程内分析和过程间分析 & 高 \\
-		R2  & 构造污点传播图 	 & 对于代码中存在的汇聚点，构造其污点传播图 & 高 \\
-		R3  & 构造污点传播树	 & 对于一个污点传播类型的分析结果，用户最终看到一棵或多课污点传播树，其由污点传播图构造，一张污点传播图可能有多棵传播树，一个传播树上清晰标注有一个产生点和一个汇聚点 & 高 \\
-		R4  & 查看分析结果	 & 对于一个污点传播类型的分析结果，用户最终看到一棵或多课污点传播树，对于树上的叶子节点，用户能够知晓其代码位置 & 高 \\
-		R5  & 保存分析结果	   &用户可以对当前代码的漏洞分析详情进行保存，其中关键点在于对污点传播树进行序列化 & 中 \\
-		R6  & 读取分析结果 	   &用户可以对保存后的分析结果文件进行读取，二次查看漏洞详情，其中关键点在于对污点传播树结构的反序列化 & 中 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}	& 污点分析 				& 对于用户上传的代码进行污点分析，包括了过程内分析和过程间分析 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}  & 构造污点传播图 	 & 对于代码中存在的汇聚点，构造其污点传播图 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}  & 构造污点传播树	 & 对于一个污点传播类型的分析结果，用户最终看到一棵或多课污点传播树，其由污点传播图构造，一张污点传播图可能有多棵传播树，一个传播树上清晰标注有一个产生点和一个汇聚点 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}  & 查看分析结果	 & 对于一个污点传播类型的分析结果，用户最终看到一棵或多课污点传播树，对于树上的叶子节点，用户能够知晓其代码位置 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}  & 保存分析结果	   &用户可以对当前代码的漏洞分析详情进行保存，其中关键点在于对污点传播树进行序列化 & 中 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}  & 读取分析结果 	   &用户可以对保存后的分析结果文件进行读取，二次查看漏洞详情，其中关键点在于对污点传播树结构的反序列化 & 中 \\
 		\bottomrule
 	\end{tabular}
 	\label{dmd:taint}
@@ -49,10 +52,9 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 		\toprule
 		\textbf{需求编号}&\textbf{需求名称}&\textbf{需求内容}&\textbf{优先级}\\
 		\midrule
-		R7	 & 处理污点分析结果 & 对污点分析的结果进行处理，对于每一个漏洞实例，反序列化的污点传播树 & 高 \\
-		R8	 & 污点传播树拆分 & 将每一个传播树拆分为多个子污点传播流，每一个污点传播流包含若干个<函数入口点，关注点>对（其为一个切片的单位） & 高 \\
-		R9   & 后向程序切片 & 对于每一个<函数入口点，关注点>， 结合用户上传的Jar包，进行后向程序切片 & 高 \\
-		R10 & 输出切片结果	 & 对于切片，程序能将其表示为文本，即对切片结构体序列化 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}	 & 处理污点分析结果 & 对污点分析的结果进行处理，对于每一个漏洞实例，反序列化的污点传播树，并将每一个传播树拆分为多个子污点传播流，每一个污点传播流包含若干个<函数入口点，关注点>对（其为一个切片的单位） & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}   & 后向程序切片 & 对于每一个<函数入口点，关注点>， 结合用户上传的Jar包，进行后向程序切片 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 输出切片结果	 & 对于切片，程序能将其表示为文本，即对切片结构体序列化 & 高 \\
 		\bottomrule
 	\end{tabular}
 	\label{dmd:slice}
@@ -69,9 +71,9 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 		\toprule
 		\textbf{需求编号}&\textbf{需求名称}&\textbf{需求内容}&\textbf{优先级}\\
 		\midrule
-		R11   & 泛化 & 对于每一个切片进行泛化处理，包括抽象数值、字符串、类名和方法名等 & 高 \\
-		R12 & 向量化	 & 对于一个切片的单词序列，生成单词与整形值的字典并按字典对其向量化 & 高 \\
-		R13 & 反向量化	 & 对于一个单词序列的向量，根据字典将其还原为切片的单词序列 & 低 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter}   & 泛化 & 对于每一个切片进行泛化处理，包括抽象数值、字符串、类名和方法名等 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 向量化	 & 对于一个切片的单词序列，生成单词与整形值的字典并按字典对其向量化 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 反向量化	 & 对于一个单词序列的向量，根据字典将其还原为切片的单词序列 & 低 \\
 		\bottomrule
 	\end{tabular}
 	\label{dmd:preprocessing}
@@ -88,14 +90,14 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 		\toprule
 		\textbf{需求编号}&\textbf{需求名称}&\textbf{需求内容}&\textbf{优先级}\\
 		\midrule
-		R14 & 预测切片安全性 & 对于一个切片向量，预测该切片是否是安全的（污染流无法传播） & 高 \\
-		R15 & 标记切片安全性	 & 对切片向量，标记其是否安全 & 高 \\
-		R16 & 预测漏洞真实性 & 用户在客户端可以查看预测结果，即该漏洞是否真实存在，需要结合切片预测需求 & 高 \\
-		R17 & 标记漏洞真实性	 & 用户在客户端可以对于一个漏洞，标记漏洞是否存在，不存在时用户需提供理由（指出安全的污染流） & 高 \\
-		R18 & 训练预测模型	 & 管理员可以在Web页面发起训练模型任务，或是安排定时器定期更新模型 & 高 \\
-		R19 & 保存预测结果	 & 用户在客户端可以保存漏洞预测结果 & 低 \\
-		R20 & 清空标记和预测结果	 & 用户在客户端可以清空标记和预测结果，以便重新预测 & 低 \\
-		R21 & 设置预测服务器	 & 用户在客户端设置远程服务器 & 中 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 预测切片安全性 & 对于一个切片向量，预测该切片是否是安全的（污染流无法传播） & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 标记切片安全性	 & 对切片向量，标记其是否安全 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 预测漏洞真实性 & 用户在客户端可以查看预测结果，即该漏洞是否真实存在，需要结合切片预测需求 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 标记漏洞真实性	 & 用户在客户端可以对于一个漏洞，标记漏洞是否存在，不存在时用户需提供理由（指出安全的污染流） & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 训练预测模型	 & 管理员可以在Web页面发起训练模型任务，或是安排定时器定期更新模型 & 高 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 保存预测结果	 & 用户在客户端可以保存漏洞预测结果 & 低 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 清空标记和预测结果	 & 用户在客户端可以清空标记和预测结果，以便重新预测 & 低 \\
+		R\arabic{requireCounter}\stepcounter{requireCounter} & 设置预测服务器	 & 用户在客户端设置远程服务器 & 中 \\
 		\bottomrule
 	\end{tabular}
 	\label{dmd:predict}
@@ -437,7 +439,7 @@ BLSTMRemotePredictor 为远程调用服务端预测接口的预测器，实现 P
 
 本系统的开发视图如图~\ref{view:dev}所示，该视图以开发者角度描述了模块的静态组织结构，具体来说本系统分为用户界面（UI），服务（Service）和第三方依赖包（Third-part Dependency）组成。
 
-UI主要包括了客户端包和管理员Web端包；Service中存在污点分析（TaintAnalysis）包，切片（Slice）包，Joana切片器（Joana）包，预处理（Preprocessing）包，预测模块客户端包（PredictCli）和服务端（PredictSrv）包，以及用于表示各种数据的 Data 包；第三方依赖包中主要有 Spotbugs 和 FindSecBugs，Spotbugs 包含了基本GUI界面和数据流分析框架，FindSecBugs包括了基本污点分析引擎，Joana 为本系统选用的切片器，Pytorch 用于构建 BLSTM 模型，Django 框架用于构建后端服务，Celery 和 Redis 用于训练请求的异步调用。
+UI主要包括了客户端包和管理员Web端包；Service中存在污点分析（TaintAnalysis）包，切片（Slice）包，Joana切片器（Joana）包，预处理（Preprocessing）包，预测模块客户端包（PredictCli）和服务端（PredictSrv）包，以及用于表示各种数据的 Data 包；第三方依赖包中主要有 Spotbugs 和 FindSecBugs，Spotbugs 包含了基本GUI界面和数据流分析框架，FindSecBugs包括了基本污点分析引擎，Joana 为本系统选用的切片器，Pytorch 用于构建 BLSTM 模型，Django 框架用于构建后端服务，Celery 和 Redis 用于训练请求的异步调用，EhCache 用于客户端的数据缓存。
 
 \begin{figure}[!htb]
 	\centering
@@ -460,6 +462,7 @@ UI主要包括了客户端包和管理员Web端包；Service中存在污点分�
 用户端通过HTTP与应用服务器通信，应用服务器上部署了基于BLSTM预测的 Web 应用，以及配置好的 Django 管理员后台应用，服务器上还部署了 Celery Work，以便使管理员可以发布关于模型训练的异步任务和定时任务，训练数据和已经训练好的模型直接存放在服务器的文件系统上。
 
 服务端通过TCP与数据库连接，MySQL 数据库主要存放本系统的各种实体数据，Redis 数据库供 Celery 使用。
+
 \begin{figure}[!htb]
 	\centering
 	\includegraphics[width=0.7\textwidth]{FIGs/chapter3/viewphysical.pdf}
@@ -509,15 +512,15 @@ UI主要包括了客户端包和管理员Web端包；Service中存在污点分�
 
 \subsection{污点传播树和漏洞报告类图设计}
 
-污点传播树是展示污点传播过程的重要数据结构，其中叶子结点中有一污点入口点和一污点汇聚点，其他叶子节点为函数或返回语句节点，树的层级关系反映出函数调用关系，一棵传播树代表了一个唯一的污点传播全流程，其结构体和漏洞报告类图设计如图~\ref{taintTreeAnnotationClass}所示。
+污点传播树是展示污点传播路径的重要数据结构，其中叶子结点中有一污点入口点和一污点汇聚点，其他叶子节点为函数或返回语句节点，树的层级关系反映出函数调用关系，一棵传播树代表了一个唯一的污点传播全流程，其结构体和漏洞报告类图设计如图~\ref{taintTreeAnnotationClass}所示。
 
-对于污点传播树，有一工具类TaintTreeGenerator，主要有两个方法：\textit{makeTree()} 和 \textit{makeAnnotation()}，\textit{makeTree()} 方法输入为污点传播图的一个入口点，根据这一入口点构造若干棵传播树；\textit{makeAnnotation()}根据污点传播树构造出一注解列表，这些注解列表最终在GUI界面上展现污点传播树。
+对于污点传播树，有一工具类 TaintTreeGenerator，主要有两个方法：\textit{makeTree()} 和 \textit{makeAnnotation()}，\textit{makeTree()} 方法输入为污点传播图的一个入口点，根据这一入口点构造若干棵传播树；\textit{makeAnnotation()}根据污点传播树构造出一注解列表，这些注解列表最终在GUI界面上展现污点传播树。构造污点传播树首先需要根据入口点计算产生路径，因此有 PathGenerator类，该类包含函数内与污点传播相关的所有边 edges，以及函数的 CFG，getPaths() 用于获取一个函数内部关于边集合的所有路径，getOnePath() 用于计算一个函数的单条路径，dfs() 用于计算路径，并将其放在 paths 属性中。
 
-考虑到污点传播树存在树形结构，并且节点存在运行顺序的上下关系的特征，本模块设计使用树的孩子兄弟结构来表示污点传播树。TreeNode 表示树上节点对象，其 id 表示了该节点的序号，其主要用来在反序列化时重构树；location 属性表明了该节点在程序中的位置，type 表示节点类型，在本系统中，该类型种类和传播图的 Edge 类型一致；firstChild 为 TreeNode 对象，指向其第一个子节点，具体来说，父节点是一个函数节点，而子节点可以使函数节点或是返回节点；nextSib 为 TreeNode 对象，指向同一深度的下一个叶子对象，具体地说，是同一函数上下文下的下一对象。TreeNode 派生出两类节点，一个是表示函数的节点 MethodTreeNode，其有一类型为 MethodDesc 的属性 caller，另一个是表示返回语句的节点 RetTreeNode，其有一属性 retType 表示了返回语句类型，与上文 RetVertex 类型一致。
+考虑到污点传播树为树形结构，并且节点存在运行顺序的上下关系的特征，本模块设计使用树的孩子兄弟结构来表示污点传播树。TreeNode 表示树上节点对象，其 id 表示了该节点的序号，其主要用来在反序列化时重构树；location 属性表明了该节点在程序中的位置，type 表示节点类型，在本系统中，该类型种类和传播图的 Edge 类型一致；firstChild 为 TreeNode 对象，指向其第一个子节点，具体来说，父节点是一个函数节点，而子节点可以使函数节点或是返回节点；nextSib 为 TreeNode 对象，指向同一深度的下一个叶子对象，具体地说，是同一函数上下文下的下一对象。TreeNode 派生出两类节点，一个是表示函数的节点 MethodTreeNode，其有一类型为 MethodDesc 的属性 caller，另一个是表示返回语句的节点 RetTreeNode，其有一属性 retType 表示了返回语句类型，与上文 RetVertex 类型一致。
 
 % 是否要举个例子或者画一张该图的说明该注解还以？
 漏洞注解类 BugAnnotation 、漏洞实例 BugInstance 类和漏洞实例 BugCollection 类都是 Spotbugs 定义的数据类型，漏洞注解类该类表示了对漏洞的一行解释性文字。
-BugInstance 是应用中一个漏洞的基本单位，其有一个漏洞类型（type 属性）和多行漏洞注解（list 属性）组成。在 BugAnnotation 中， \textit{format()} 是该条注解在GUI界面上的显示文字时被调用的方法，\textit{writeXML()} 用于将注解保存为XML格式，以上为原生 Spotbugs 定义的方法，除此之外，为了方便反序列化，本模块还为其增加了 \textit{fromXML()}方法。NoteAnnotation、RetNodeAnnotation 和 MethodNodeAnnotation 对应于污点传播树的 TreeNode、RetTreeNode 和 MethodTreeNode 节点，对于抽象的节点注解类 NoteAnnotation 而言，其id、firstId，nextId 分别指向了 TreeNode的id，第一个孩子节点的id和第一个兄弟节点的id，depth 表示该节点距离树根的深度，具体类 RetNodeAnnotation 和 MethodNodeAnnotation 会将重现实现 BugAnnotation 类的三个方法，特别的，RetNodeAnnotation 的 firstId 恒为-1，因为返回语句的节点不会存在子节点。BugCollection类主要有漏洞实例组成，除此之外，其还记录有项目名称，用户提交的应用jar包（appJars）、依赖包（libJars）和源码包（srcs）。
+BugInstance 是应用中一个漏洞的基本单位，其有一个漏洞类型（type 属性）和多行漏洞注解（list 属性）组成。在 BugAnnotation 中， \textit{format()} 是该条注解在GUI界面上的显示文字时被调用的方法，\textit{writeXML()} 用于将注解保存为XML格式，以上为原生 Spotbugs 定义的方法，除此之外，为了方便反序列化，本模块还为其增加了 \textit{fromXML()}方法。NoteAnnotation、RetNodeAnnotation 和 MethodNodeAnnotation 对应于污点传播树的 TreeNode、RetTreeNode 和 MethodTreeNode 节点，对于抽象的节点注解类 NoteAnnotation 而言，其id、firstId，nextId 分别指向了 TreeNode的id，第一个孩子节点的id和第一个兄弟节点的id，depth 表示该节点距离树根的深度，具体类 RetNodeAnnotation 和 MethodNodeAnnotation 会将重现实现 BugAnnotation 类的三个方法，特别的，RetNodeAnnotation 的 firstId 恒为-1，因为返回语句的节点不会存在子节点。BugCollection类主要有漏洞实例组成，除此之外，其还记录有项目名称，用户提交的应用jar包（appJars）、依赖包（libJars）和源码包（srcs）。\\
 
 
 \begin{figure}[!htb]
@@ -529,21 +532,22 @@ BugInstance 是应用中一个漏洞的基本单位，其有一个漏洞类型�
 \subsection{污点分析器类图设计}
 
 污点分析器类图设计如图~\ref{taintDetectorClass}所示，Detector 类是所有分析器的基类，对于每一个 Detector 子类，Spotbugs会按流程图~\ref{taintprocess}所示使其分析目标 Jar 中的每个类，其中调用的就是类中 \textit{visitClassContext()} 方法，类遍历完成后，又会调用 \textit{report()} 方法产生报告。
+
 \begin{figure}[!htb]
 	\centering
 	\includegraphics[width=0.8\textwidth]{FIGs/chapter3/taintDetectorClass.pdf}
 	\caption{污点分析器类图设计}\label{taintDetectorClass}
 \end{figure}
 
-AbstractTaintDetector 继承 Detector 类，该类也是记录污点传播信息的重要基类，其关键在于 returns 属性和 loc2callee 属性，returns记录了每一个函数中能够返回污点变量的 return 语句，loc2callee 记录了在函数调用发生时，invoke指令所在的函数位置和被调用的函数摘要。其会实现 Detector 的 \textit{visitClassContext()} 方法，并且在该方法内，调用 \textit{analyzeMethod()} 方法对每一个目标函数进行分析，对于污点传播信息的记录逻辑也在该方法内。对于特殊指令，如 \textit{return} 和 \textit{invoke}，\textit{analyzeMethod()} 会调用  \textit{analyzeInst()} 对指令进行分析。
+AbstractTaintDetector 继承 Detector 类，该类也是记录污点传播信息的重要基类，其会实现 Detector 的 \textit{visitClassContext()} 方法，并且在该方法内，调用 \textit{analyzeMethod()} 方法对每一个目标函数进行分析，本文对该方法进行了优化，在方法内部增加了记录函数调用关系和函数返回语句位置的逻辑。对于特殊指令，如 \textit{return} 和 \textit{invoke}，\textit{analyzeMethod()} 会调用  \textit{analyzeInst()} 对指令进行分析。
 
-AbstractInjectionDetector 继承了 AbstractInjectionDetector，进一步实现了污点分析过程，即实现了 \textit{analyzeInst()} 和 \textit{report()} 方法，其属性 sinks 记录了目标应用的所有汇聚点，在所有类的分析完成后，依次调用 \textit{report()} 生成报告。
+TaintGlobalData 类是一个单例类，用于使用 EhCache 保存被测程序中的函数调用关系（（loc2callee属性）和函数内部返回语句位置method2returns属性），loc2callee 实际上记录了函数调用发生时 invoke 指令所在函数位置与被调函数摘要的映射，method2returns实际上记录了函数摘要和以返回语句集合的映射，这些信息将在生成污染传播树时使用。其 \textit{getInstance()} 用于获取唯一实例，\textit{registerCache()} 和 \textit{releaseCache()} 用于一个 Detector 注册或释放缓存，当所有 Detector 释放缓存后，释放缓存方法会彻底清除缓存资源。
 
-污点汇聚点的类名为 InjectionSink，其属性 caller 和 sinkMethod 为调用敏感函数的最后一个函数，以及敏感函数的函数摘要，除此之外，所有将污点汇聚到该点的调用语句有被记录在其 locations 列表上，\textit{addLocation()} 就是记录调用语句发生位置的方法，\textit{getBugInstance()} 方法为产生报告的具体方法，被 \textit{AbstractInjectionDetector.report()} 方法调用，构造污点传播图、传播树和生成漏洞实例逻辑都在该方法中。
+AbstractInjectionDetector 继承了 AbstractInjectionDetector，进一步实现了污点分析过程，即实现了 \textit{analyzeInst()} 和 \textit{report()} 方法，其属性 sinks 记录了目标应用的所有汇聚点，在所有类的分析完成后，依次调用 \textit{report()} 生成报告。其构造方法会调用，在 \textit{report()} 方法结束后，其会调用 TaintGlobalData 的 \textit{registerCache()} 方法，在 \textit{report()} 方法中，其会调用 \textit{releaseCache()} 方法。
 
-上面提到的位置信息由 Location 类表示，其包含的属性有语句所在函数的函数摘要（mDesc），语句所在的字节码序号（byteCodeNo）和所在 CFG 代码块的序号（orderedBlockNo）。
+污点汇聚点的类名为 InjectionSink，其属性 caller 和 sinkMethod 为调用敏感函数的最后一个函数，以及敏感函数的函数摘要，除此之外，所有将污点汇聚到该点的调用语句有被记录在其 locations 列表上，\textit{addLocation()} 就是记录调用语句发生位置的方法，\textit{getBugInstance()} 方法为产生报告的具体方法，被 \textit{AbstractInjectionDetector.report()} 方法调用，本系统对该方法进行改进，方法中将调用构造污点传播图、传播树和生成漏洞实例方法。
 
-
+上面提到的位置信息由 Location 类表示，其包含的属性有语句所在函数的函数摘要（mDesc），语句所在的字节码位置（byteCodeNo）和所在 CFG 代码块的序号（blockNo）。
 
 \section{程序切片模块设计}
 
@@ -560,6 +564,7 @@ AbstractInjectionDetector 继承了 AbstractInjectionDetector，进一步实现�
 
 因为 Spotbugs 中除了上文提到的污点传播检测器还存在其他漏洞检测器，其他检测器产生漏洞不属于本系统处理范围，在模块运行前，先要对漏洞报告进行过滤，同时将污点传播类型的漏洞反序列化漏洞注解，接着模块初始化一个具体的程序切片器，其中包括了对切片器的各种配置，具体会在实现章节介绍，以及初始化一个空的切片项目。接下来将会遍历漏洞实例集合中的每一个漏洞，对于一个污点传播漏洞，根据上一模块产生的漏洞实例注解集，还原出若干棵污点传播树，接下来就是对污点传播树进行拆解并切片的步骤，该步骤是本系统的核心步骤之一，包括了对污点传播树进行拆解，将其分为污点传播流作为为更小的切片任务，其具体实现也将在下一实现章节介绍；对污点传播树的切片结束后，将传播树信息和对应切片集合加入项目中，遍历完所有漏洞的污点传播树后，模块输出切片项目，项目内存在与漏洞相关的所有切片。\\
 
+\vspace{1cm}
 \subsection{类图设计}
 
 \begin{figure}[!htb]
@@ -880,3 +885,6 @@ BLSTM 类是 BLSTM 神经网络类，其继承于 pytorch 模型基类 nn.Module
 \end{table}
 
 \section{本章小结}
+
+本章主要介绍了基于污点分析和 BLSTM 的Java静态代码扫描系统的需求分析和系统设计。首先本章分析了系统的功能型需求和非功能性需求，并为此设计了系统用例，随后结合 4+1 视图说明了系统的总体设计，接着按污点分析模块、程序切片模块、数据预处理模块和预测模块的顺序介绍了系统的各个模块设计；最后介绍本系统的数据库设计。
+

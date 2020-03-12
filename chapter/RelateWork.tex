@@ -19,8 +19,8 @@
 \subsubsection{词法分析技术}
 词法分析技术是最简单的一类漏洞挖掘技术，其主要思想是将代码文本与一直归纳好的缺陷模式进行匹配，以此发现漏洞。由于其不深入分析程序结构和语义，往往只能挖掘较为简单的一类漏洞，并且存在相当高的误报率，在实际场景下应用较少，但由于其思想简单，适用性很广，目前也还存在类似工具，如：MobSF~\footnote{\url{https://github.com/MobSF/Mobile-Security-Framework-MobSF}}，cobra~\footnote{\url{https://github.com/WhaleShark-Team/cobra}}。\\
 
-\subsubsection{数据流分析技术}
-数据流分析是一种按程序执行路径模拟数据流动的一种分析技术，通过分析数据在流动时的取值或状态，来发现程序中的安全漏洞，其在白盒，灰盒和黑盒测试都有体现。
+\subsubsection{数据流和控制流分析技术}
+数据流分析是一种按程序执行路径模拟数据流动的一种分析技术，其原本是用于进行程序优化的技术~\cite{Kildall1973}，安全研究者们随后也通过这类技术发现程序中的安全漏洞~\cite{Shastry2016}，其在白盒，灰盒和黑盒测试都有应用。
 
 在数据流分析过程中，存在过程内分析和过程间分析，过程内分析主要对函数内分析而过程间的分析主要处理跨函数分析。
 对于过程内分析，根据其对程序路径的分析精度，数据流分析可以分为流不敏感分析，流敏感分析和路径敏感分析。流不敏感的数据流分析只是按代码行号从上而下进行分析；流敏感分析会首先产生程序的控制流图（CFG, Control Flow Graph），再按照CFG的拓扑排序正向或逆向的分析；路径敏感信息不仅考虑到语句的先后顺序，还会考虑语句的可达性，即会沿实际可行的路径进行分析。
@@ -53,7 +53,7 @@
 
 由于其不需要了解程序内部具体实现，不论是Web应用还是二进制程序，其都是一种非常受欢迎的技术。
 其关键在于如何构造能够引发软件漏洞的输入，对于Web应用来说，扫描器会针对每个漏洞（如SQL注入，XSS等）准备若干个（或若干组）可能会引发漏洞的输入模式，接着爬虫程序会爬取网站所有URL，在扫描到符合条件的URL时，将这些输入模式整合进HTTP报文中，将其发送给服务器，若服务器返回符合漏洞特征，则报告程序存在漏洞，主要的工具有AWVS~\footnote{\url{https://www.acunetix.com/vulnerability-scanner/}}，Netsparker~\footnote{\url{https://www.netsparker.com/}}和ZAP~\footnote{\url{https://www.zaproxy.org/}}。
-学术界更热衷于对二进制程序的模糊测试技术进行改进~\cite{artoffuzz}，为了构造能够到达更深层代码的输入，研究者们提出了通过代码覆盖率制导的模糊测试技术，即在第一轮使用测试人员指定的输入，在以后的测试中，对能够产生新路径的输入进行变异，再将变异后的输入进行测试，其代表性的工具有AFL~\footnote{\url{http://lcamtuf.coredump.cx/afl/}}和libFuzzer~\footnote{\url{https://llvm.org/docs/LibFuzzer.html}}。
+学术界更热衷于对二进制程序的模糊测试技术进行改进~\cite{artoffuzz}，为了构造能够到达更深层代码的输入，研究者们提出了基于变异的模糊测试和基于生成的模糊测试~\cite{Zou2018}，基于变异的模糊测试往往通过当前模糊测试结果反馈和结合程序特征，对输入进行各类变异，以此指导测试方向，该方向主要有：代码覆盖率制导的模糊测试技术，如 AFL~\footnote{\url{http://lcamtuf.coredump.cx/afl/}}和libFuzzer~\footnote{\url{https://llvm.org/docs/LibFuzzer.html}}；由符号执行制导的模糊测试技术，如 Driller~\cite{Driller}和由信息流制导的模糊测试计入，如 VUzzer~\cite{VUzzer}。基于生成的模糊测试技术应用于输入具有一定模式的场景，例如 PDF 阅读器，程序编译器或解析器等，例如 CodeAlchemist~\cite{CodeAlchemist} 即设计了一套 JavaScript 代码生成工具，以此发现 JavaScript 解释器的漏洞。
 
 模糊测试作为一种能够得到漏洞利用的一种漏洞挖掘技术，在黑盒和灰盒场景下应用广泛，但由于目前程序日益复杂，该漏洞挖掘技术很难测试隐藏在复杂状态已经条件分支下的代码块，导致程序覆盖率不高，即其具有低误报，高漏报的特点。
 
@@ -62,7 +62,7 @@
 %https://github.com/firmianay/CTF-All-In-One/blob/master/doc/5.5_taint_analysis.md
 %http://www.jos.org.cn/html/2017/4/5190.htm
 %http://www.jos.org.cn/html/2019/2/5581.htm
-污点分析属于数据流分析的变种，通过判断关键操作的数据（如调用危险函数的参数）是否可被用户操控，来判断程序是否安全性漏洞~\cite{taint:wanglei}。由于其能考虑程序上下文，并且有较强的可解释性——安全工程师可以通过跟踪污点传播树判断是否存在安全问题，因此其也成为了挖掘Web或Android漏洞较为常用的技术，很多白盒扫描器都使用了技术，如：Find-sec-bugs~\footnote{\url{https://www.microfocus.com/en-us/products/static-code-analysis-sast/}}，Fortify~\footnote{\url{https://www.microfocus.com/en-us/solutions/application-security}}和LGTM~\footnote{\url{https://lgtm.com/}}。\\
+污点分析属于数据流分析的变种，通过判断关键操作的数据（如调用危险函数的参数）是否可被用户操控，来判断程序是否安全性漏洞~\cite{taint:wanglei}。由于其能考虑程序上下文，并且有较强的可解释性——安全工程师可以通过跟踪污点传播树判断是否存在安全问题，因此其也成为了挖掘Web或Android漏洞较为常用的技术，很多开源或商用白盒扫描器都使用了技术，如：Pixy~\cite{pixy}、FindSecBugs~\footnote{\url{https://www.microfocus.com/en-us/products/static-code-analysis-sast/}}~\cite{taint:finding}，Fortify~\footnote{\url{https://www.microfocus.com/en-us/solutions/application-security}}和LGTM~\footnote{\url{https://lgtm.com/}}。\\
 
 \subsection{污点分析原理}
 
@@ -76,7 +76,7 @@
 \end{itemize}
 这些三要素主要是通过安全从业人员根据经验手动标记，而在学术界也存在通过统计或机器学习产生点和汇聚点的研究。\\
 
-\subsubsection{污点传播过程}
+\subsubsection{污点传播过程}         
 污点传播分为静态污点传播和动态污点传播，两者区别在于静态污点传播利用程序代码进行污点传播，而动态污点传播则需要通过程序的实际运行进行传播，由于本文关注于白盒测试情景，故只介绍静态污点传播方法，而在下一子章节会介绍动态传播的优劣势。
 
 在定义好以上三要素之后，污点传播分析法会与数据流分析一样，对程序进行过程内分析和过程间分析。
@@ -101,7 +101,7 @@
 如图~\ref{externalflow}所示，分析过程从左侧函数开始，因为其找到了一处产生点——\textit{request.getParameter("xss")}，于是将污点传递到变量\textit{p}，接着调用函数\textit{func(p)}，于是对函数\textit{func}做过程内分析，得到其函数摘要，$\left\langle func, p, 1\right\rangle$，即其可以将污点返回，于是回到调用者的函数内，变量\textit{q}被标记为污点，又因为第三行存在一处汇聚点——\textit{response.getpriter.print()}，并且参数为污点，于是报告此处有漏洞，并且根据汇聚点可以判断该漏洞是一个XSS漏洞。\\
 
 \subsection{污点分析的优势和不足}
-污点分析能够对程序上下文有一定理解，往往能产生误报率相对较低以及可解释的漏洞报告，另外其方法对 Web 类型的安全漏洞覆盖率较高，因此，本文也选择该技术产生初步的漏洞扫描结果。
+污点分析能够对程序上下文有一定理解，往往能产生误报率相对较低以及可解释的漏洞报告，其方法对 Web 类型的安全漏洞覆盖率较高，而污点类型的漏洞普遍具有较高的危害性~\cite{taintStyle,aletheia}，因此该方法已被很多工业界、学术界的安全静态扫描工具所使用~\cite{taintStyle,taint:taj,pixy}，本文也选择该技术产生初步的漏洞扫描结果。
 
 然而，污点传播仍有可能发生误报，以下通过简单示例来说明。
 
@@ -137,9 +137,9 @@
 正是因为存在这些不足，本文将在下文引入程序切片技术和LSTM来降低误报率。\\
 
 \subsection{Java污点分析工具选型}
-Java上的污点分析工具有很多，如FindSecBugs\footnote{\url{https://find-sec-bugs.github.io/}，最初为FindBugs~\cite{taint:finding}，如今被拆分成Spotbugs和FindSecBugs插件，Spotbugs提供UI和数据流基本分析框架，FindSecBugs提供污点分析框架和大量扫描规则，下文中提到FindSecBugs实际指Spotbugs和FindSecBugs。}，TAJ~\cite{taint:taj}。但对于安全扫描工具来说，除了污点传播引擎，针对漏洞定义好大量的入口点和汇聚点是扫描准确性的重要保证。findsecbugs作为较为经典的扫描工具，前人已经为预先定义了大量的污点传播入口点和汇聚点，并且支持自定义新的入口点和汇聚点，非常适合二次开发。
+Java上的污点分析工具有很多，如 FindSecBugs\footnote{\url{https://find-sec-bugs.github.io/}，最初为FindBugs~\cite{taint:finding}，如今被拆分成Spotbugs和FindSecBugs插件，Spotbugs提供UI和数据流基本分析框架，FindSecBugs提供污点分析框架和大量扫描规则，下文中提到FindSecBugs实际指Spotbugs和FindSecBugs。}，TAJ~\cite{taint:taj}。但对于安全扫描工具来说，除了污点传播引擎，针对漏洞定义好大量的入口点和汇聚点是扫描准确性的重要保证。FindSecBugs 作为较为经典的扫描工具，前人已经为预先定义了大量的污点传播入口点和汇聚点，并且支持自定义新的入口点和汇聚点，非常适合二次开发。
 
-本系统保证准确性的手段在于利用机器学习对污点传播的误报进行改进，而不是定义大量污点传播规则，因此本文采用FindSecBugs进行污点传播分析。此外，本系统解决了原版FindSecBugs不能打印污点传播树的问题，使其更加易用。\\
+本系统保证准确性的手段在于利用机器学习对污点传播的误报进行改进，而不是定义大量污点传播规则，因此本文采用FindSecBugs进行污点传播分析。此外，本系统解决了原版 FindSecBugs 不能展示传播路径的问题，使其更加易用。\\
 
 \section{程序切片技术}
 \subsection{程序切片定义}
@@ -180,7 +180,7 @@ $$
 %https://www.cnblogs.com/maifengqiang/archive/2013/05/21/3090739.html
 程序切片技术自诞生以来，也经历了多个阶段~\cite{slices:xu2005brief}，起初为Mark Weiser的概念阶段，主要通过控制流来进行程序切片；随后发展为基于依赖图的切片阶段，Ottenstein等人~\cite{slices:ottenstein1984program}首先提出了运用程序依赖图（PDG，Program Dependence Graph）进行切片，主要思想是首先对程序建立程序依赖图，再通过对程序依赖图的可达性计算进行后向切片，程序依赖图是一种反应语句数据依赖和控制依赖的一种程序中间表达形式，图中的点为单条程序语句，而图中的边则表示语句之间存在数据依赖关系，例如图~\ref{internalflow}的代码中中，第三行与第二行就存在数据依赖关系，第七行与第四行则存在控制依赖关系。PDG只适用于单个函数的切片，horwitz等人~\cite{slices:horwitz1990}提出了系统依赖图（SDG, System Dependence Graph）的概念，在PDG的基础上，增加了两种额外的边，一种边表示调用者和被调用者的直接依赖关系，另一种边描述由于边的依赖而引发的间接依赖关系，同时，前向切片也在此阶段产生；第三阶段为面向对象程序切片阶段，研究者提出将接受对象作为一个隐藏参数，结合多态解析手段，将面向对象切片问题转换为一般切片问题，使程序切片可以运用于面向对象语言。
 
-目前已有很多工具可以对java程序进行切片，例如WALA（T.J. Watson Libraries for Analysis）~\footnote{\url{http://wala.sourceforge.net/wiki/index.php/Main_Page}}和Joana~\footnote{\url{https://pp.ipd.kit.edu/projects/joana/}}~\cite{slices:joana}。WALA原本由IBM T.J. Watson 研究中心作为DOMO项目的一部分进行开发，在2006年，IBM将改软件转赠给社区。其主要功能包括Java类型系统和类层次分析，过程间数据流分析、指针分析和调用图构造以及上下文相关的切片等。Joana是由卡尔斯鲁厄理工学院推出，基于WALA的一些分析手段的另一款Java切片工具，其包含指针分析，异常分析和PDG构图等复杂功能，并且其切片结果中能够更清晰的看到函数调用时实参的值，而对于污点传播类型中的自定义过滤函数，实参的值是一个很重要的特征（见图~\ref{fig:sliceresult}），因此本文选择Joana作为程序的切片器。\\
+目前已有很多工具可以对java程序进行切片，例如WALA（T.J. Watson Libraries for Analysis）~\footnote{\url{http://wala.sourceforge.net/wiki/index.php/Main_Page}}和Joana~\footnote{\url{https://pp.ipd.kit.edu/projects/joana/}}。WALA原本由IBM T.J. Watson 研究中心作为DOMO项目的一部分进行开发，在2006年，IBM将改软件转赠给社区。其主要功能包括Java类型系统和类层次分析，过程间数据流分析、指针分析和调用图构造以及上下文相关的切片等。Joana是由卡尔斯鲁厄理工学院推出，基于WALA的一些分析手段的另一款Java切片工具，其包含指针分析，异常分析和PDG构图等复杂功能，并且其切片结果中能够更清晰的看到函数调用时实参的值，而对于污点传播类型中的自定义过滤函数，实参的值是一个很重要的特征（见图~\ref{fig:sliceresult}），因此本文选择Joana作为程序的切片器。\\
 \begin{figure}
 	\centering
 	\subfigure[目标程序]{
@@ -204,10 +204,10 @@ $$
 然而，传统后向程序切片也存在不足，目前最大的挑战在于当程序规模进一步变大时，后向程序切片变得效率低下；此外原生Joana并不支持在缺失程序依赖下对其程序进行切片，而在SCA的输入中，缺失依赖的程序又是非常常见的，针对以上问题本文做出了分段切片、限制调用图切片和无依赖切片的技术调整，具体细节将在第三四章节详细说明。\\
 
 \section{BLSTM算法}
-双向长短期记忆网络（BLSTM，Bidirectional Long Short-Term Memory）是一种特殊的循环神经网络（RNN，Recurrent neural network），主要改进有双向读取和增加记忆门两方面，是一种在自然语言处理上应用广泛的神经网络。\\
+双向长短期记忆网络（BLSTM，Bidirectional Long Short-Term Memory）是一种特殊的循环神经网络（RNN，Recurrent neural network），主要改进有双向读取和增加记忆门两方面，是一种在自然语言处理上应用广泛的神经网络~\cite{lstm:translate}。\\
 
 \subsection{LSTM原理介绍}
-为了保证在不同的序列数据上，相同数据点有不同输出结果，人们将其记忆体加入神经网络之中，从而产生了RNN，然而RNN在处理较长文本时，存在着梯度爆炸或梯度消失的问题，Hochreiter和Schmidhuber于1997年在记忆体中加入写入、输出和遗忘门，而改进后的神经网络也被成为长短期记忆网络（LSTM，Long Short-Term Memory）~\cite{lstm:1997}。
+为了保证在不同的序列数据上，相同数据点有不同输出结果，人们将其记忆体加入神经网络之中，从而产生了RNN，然而RNN在处理较长文本时，存在着梯度爆炸或梯度消失的问题~\cite{lstm:gradient}，Hochreiter和Schmidhuber于1997年在记忆体中加入写入、输出和遗忘门，而改进后的神经网络也被成为长短期记忆网络（LSTM，Long Short-Term Memory）~\cite{lstm:1997}。
 
 \begin{figure}[htb]
 	\centering
@@ -236,20 +236,20 @@ $$
 
 BLSTM的优势在于，单向LSTM在$x_t$时刻的输出实际上只被$x_0, x_1, \dots, x_t$影响，即其只能考虑截止到当前时刻的数据，而BLSTM的在某一时刻的输出值不仅受到该时刻正向数据的影响，还能受到该时刻后向数据的影响，因此有纵观全局的能力。\\
 
-\subsection{BLSTM的优势}
-LSTM增加了门限机制，解决了RNN梯度爆炸或梯度消失的问题，而BLSTM通过双向传播机制，能够综合正向时序和逆向时序信息，是时序数据的分类和拟合问题较为合适的算法。
+\subsection{BLSTM 的优势}
+LSTM 增加了门限机制，解决了RNN 梯度爆炸或梯度消失的问题，而 BLSTM 通过双向传播机制，能够综合正向时序和逆向时序信息，是时序数据的分类和拟合问题较为合适的算法。
 
-由于BLSTM能够处理时序数据的分类问题，而污点传播的切片也正是可以转换为上下文敏感的时序数据。所以本系统采用BLSTM作为污点传播预测算法，通过训练集训练BLSTM参数将其保存，在给定污点传播的切片输入时，系统调用训练好的模型对其进行预测。
+由于 BLSTM 能够处理时序数据的分类问题，如自然语言处理，而目前已有很多利用自然语言处理和该模型进行程序分析的研究~\cite{naturalSoftware,lstm:recognize,lstm:repo,vuldeepecker,Koc2017,Koc2019}。所以本系统采用 BLSTM 作为污点传播预测算法，将污点传播的切片作为上下文敏感的自然语言数据，通过训练集训练 BLSTM 参数将其保存，在给定污点传播的切片输入时，系统调用训练好的模型对其进行预测。
 
-\section{Django框架}
-\subsection{Django框架简介}
-Django是一个高级的Python Web开发框架，它使开发者能够对Web应用进行简洁实用的设计并对其进行快速开发。Django由一群有经验的开发者开发，其框架和内部设计避免了很多Web开发的问题，帮助开发者只关心于他们Web应用本身的逻辑而不需要重新开发通用组件。
+\section{Django 框架}
+\subsection{Django 框架简介}
+Django 是一个高级的 Python Web 开发框架，它使开发者能够对 Web 应用进行简洁实用的设计并对其进行快速开发。Django 由一群有经验的开发者开发，其框架和内部设计避免了很多 Web 开发的问题，帮助开发者只关心于他们Web应用本身的逻辑而不需要重新开发通用组件。
 
-Django采用模型视图模板（MVT，Model-View-Template）模式，在模型层，其有一套高效的对象关系映射（ORM，Object Relational Mapping）框架和一些常用对象，比如用户对象，管理员对象等；在视图层，Django阶级了基于正则表达式的URL分派系统，能够让用户灵活的处理自己的URL路由，并且内置的Request，Response对象能够让开发者快速的获取和返回数据；在模板层，Django有自己的原生模板引擎，类似于Jinja2，同时支持用户更换第三方引擎，保证用户充分自由的展现其数据。除此之外，Django还内置了一个用户管理后台和各类安全保障模块，使大大加速了开发者的开发过程。\\
+Django 采用模型视图模板（MVT，Model-View-Template）模式，在模型层，其有一套高效的对象关系映射（ORM，Object Relational Mapping）框架和一些常用对象，比如用户对象，管理员对象等；在视图层，Django 阶级了基于正则表达式的URL分派系统，能够让用户灵活的处理自己的 URL 路由，并且内置的 Request，Response 对象能够让开发者快速的获取和返回数据；在模板层，Django 有自己的原生模板引擎，类似于 Jinja2，同时支持用户更换第三方引擎，保证用户充分自由的展现其数据。除此之外，Django 还内置了一个用户管理后台和各类安全保障模块，使大大加速了开发者的开发过程。\\
 
-\subsection{Django框架优势}
-本系统的后台主要是对机器学习模型的操作，因此自然选择了Python开发语言，而Django作为Python语言上应用最为广泛的Web开发框架之一，自然也成为了本系统后台的首选技术。
-利用Django的灵活性，本系统利用其URL分派系统接受客户端传来的预测、训练、标记等请求并对其处理，通过ORM框架将程序切片、模型训练数据快速本地化，以完成对系统后台的快速开发。
+\subsection{Django 框架优势}
+本系统的后台主要是对机器学习模型的操作，因此自然选择了 Python 开发语言，而 Django 作为 Python 语言上应用最为广泛的Web开发框架之一，自然也成为了本系统后台的首选技术。
+利用 Django 的灵活性，本系统利用其 URL 分派系统接受客户端传来的预测、训练、标记等请求并对其处理，通过 ORM 框架将程序切片、模型训练数据快速本地化，以完成对系统后台的快速开发。
 
 \section{本章小结}
 本章首先介绍了目前流行的漏洞挖掘技术，并对其优劣势进行了说明，接着介绍了本系统使用的技术、工具和框架，并分别说明了使用这些技术、工具和框架的原因。在技术角度，本章依次介绍了污点分析技术、程序切片技术和BLSTM神经网络并对其优缺点进行了总结，分析了使用程序切片和BLSTM对污点传播会使污点分析更精确的原因；在工具角度，本章指出了使用Find-sec-bugs进行污点分析，使用Joana进行程序切片的原因及本系统对其进行的优化改进；最后简单介绍了Django框架以及其优点。

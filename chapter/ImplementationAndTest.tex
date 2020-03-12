@@ -66,7 +66,7 @@ $dataflow \leftarrow getDataflow(method)$;\\
 
 首先，代码构造了一个空的污点传播图，将直接调用敏感函数的边加入图中，以代码~\ref{code:xss} 为例，将$sink() \rightarrow Writer.write()$ 加入图中；接着向图中添加相关函数调用的边（12-19 行），具体地说，遍历污点传播相关语句位置集合，对于每一个 location，获取其调用函数（location 记录了调用函数的函数摘要），再获取其被调用函数（只需查找调用语句位置集合 loc2callee 即可），随后在将 location 转化为 SourceLineAnnotation，将生成一条边并加入图中即可； 最后，向图中加入返回语句的点和边（21-27 行），只需要遍历先前得到的返回语句位置集合（injDetector.returns）即可。\\
 
-\subsection{构造污点传播树实现}
+\subsection{构造污点传播树并生成注解的实现}
 
 在得到污点传播图后，对图的每一入口进行深度优先搜索，得到污点传播树集合，搜索算法~\ref{alg:buildTaintTree}所示，算法实现于 \textit{TaintTreeGenerator.makeTree()} 函数中。\\
 
@@ -121,7 +121,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 
 对于入口函数 v（注意，该入口函数不是第二章介绍的污点入口点，而是图上没有入度的点，实际上的污点入口点发生在 v 节点代表的函数中），调用$dfs(v, null,true)$ 即可返回函数入口的多个污点传播树。
 
-上述算法也说明了，一个入口之所以有多个污点传播树，其根本原因是污点传播路径不同，例如代码~\ref{code:xss} 中的 \textit{doGet()} 函数，搜索后，可以得到如图~\ref{taintTree} 所示的两棵污点传播树。
+由上述算法可知，因为一个入口点到达汇聚点的路径不同，一个入口可以有多个污点传播树，例如代码~\ref{code:xss} 中的 \textit{doGet()} 函数，搜索后，可以得到如图~\ref{taintTree} 所示的两棵污点传播树。
 
 \begin{figure}[!htb]
     \centering
@@ -129,6 +129,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
     \caption{\textit{doGet()} 函数的污点传播树}\label{taintTree}
 \end{figure}
 
+真实情况下，一个程序中可能存在大量 if-else 语句，可能会导致路径爆炸的问题，因此系统在这里对算法进行了限制，当入口函数的传播树个数大于 300 时，将不再获取子传播树集合，而是直接获取一棵可行的传播树。
 
 得到污点传播树后，对传播树再做一次深度搜索可以将书上的所有节点转化为可以显示在界面上的注解，其算法表示如下：
 
@@ -165,16 +166,19 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 
 切片控制模块的实现代码片段如代码~\ref{code:sliceControl} 所示，该代码出现在 SliceRunner 的 run() 方法中，主要功能是调用翻译器和切片器对一个目标项目中的所有漏洞切片，即执行流程图~\ref{sliceProcessing} 上的流程。
 
-代码的第1行首先调用 reportParesr 将项目进行过滤和翻译，得到 taintProject， 接着第三行通过项目中的应用 Jar 包和依赖 Jar包，对 slicer 进行配置。接着遍历污点传播类型的漏洞实例，对于每一个实例，获取其污点传播树集合（第11行），接着遍里污点传播树，对每一个污点传播树进行切片（第19行），每完成一个漏洞实例后向监视器汇报进度（第24-25行），并且若是 Joana 类型的切片器，对切片器进行清除缓存的操作，防止缓存过多造成 OOM，最后返回切片项目。\\
-
-\vspace{-0.7cm}
-\begin{minipage}[!htbp]{0.9\textwidth}
+%
+\begin{minipage}[c]{\textwidth}
     \lstinputlisting[language=Java, caption={切片控制模块实现代码片段}, label={code:sliceControl}]{FIGs/chapter4/sliceControl.java}
 \end{minipage}
-\vspace{0.7cm}
+
+\vspace{2.5cm}
+
+代码的第1行首先调用 reportParesr 将项目进行过滤和翻译，得到 taintProject， 接着第三行通过项目中的应用 Jar 包和依赖 Jar包，对 slicer 进行配置。接着遍历污点传播类型的漏洞实例，对于每一个实例，获取其污点传播树集合（第11行），接着遍里污点传播树，对每一个污点传播树进行切片（第19行），每完成一个漏洞实例后向监视器汇报进度（第24-25行），并且若是 Joana 类型的切片器，对切片器进行清除缓存的操作，防止缓存过多造成 OOM，最后返回切片项目。\\
+\pagebreak
 
 \subsubsection{过滤漏洞实例}
-本系统实现了切片预测逻辑和污点传播逻辑的解耦，从而产生了翻译漏洞报告这一过程。在 Spotbugs 报告类型的翻译器中，主要逻辑在于对漏洞过滤并还原污点传播树。对于污点传播树的还原可以通过对漏洞注解的二次遍历实现，这里不再赘述，本节主要通过代码~\ref{code:sliceFilter}，介绍过滤漏洞实例的实现。
+
+本系统为实现切片预测逻辑和污点传播逻辑的解耦，产生了翻译漏洞报告这一过程。在 Spotbugs 报告类型的翻译器中，主要逻辑在于对漏洞过滤并还原污点传播树。对于污点传播树的还原可以通过对漏洞注解的二次遍历实现，这里不再赘述，本节主要通过代码~\ref{code:sliceFilter}，介绍过滤漏洞实例的实现。
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Java, caption={漏洞过滤代码片段}, label={code:sliceFilter}]{FIGs/chapter4/sliceFilter.java}
@@ -366,12 +370,12 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 对于一个正报标记，用户只需指定漏洞实例的一个传播树即可，因为一个真实的漏洞的只要有一棵传播树的污点传播成立，该漏洞就是真实存在的，因此 GUI 收到请求后会遍历传播树相关的所有切片，并发送标记为不安全的标签。对于每一个不安全标签的标记时序与安全标记时序相同，这里不再赘述。
 
-\subsection{批处理训练过程}
+\subsection{批训练过程}
 
 用户在 Web 端可以发起训练任务，Celery Worker 收到训练任务后，会调用训练服务按指定配置训练 BLSTM 神经网络。
 
 % https://www.zhihu.com/question/32673260
-该模型训练时的输入为切片向量集合，对应标记集合，输出为一个训练好参数的 BLSTM 模型。由于程序切片大小有差异，切片向量长度也是不一致的，对于时序型神经网络 BLSTM 来说，本身就具有接受不定长向量的能力，然而在实际训练时，为了保证训练效率和效果，往往会将一批切片向量和对应标记合并一为一批输入神经网络，再进行权重更新，这时一组切片向量需要转换为二维向量，即需要对末尾补 0，因此在BLSTM模型中，要考虑到补 0 的无效数据。
+该模型训练时的输入为切片向量集合，对应标记集合，输出为一个训练好参数的 BLSTM 模型。由于程序切片大小有差异，切片向量长度也是不一致的，对于时序型神经网络 BLSTM 来说，本身就具有接受不定长向量的能力，然而在实际训练时，为了保证训练效率和效果，往往会将一批切片向量和对应标记合并一为一批输入神经网络，再进行权重更新——批训练~\cite{imageNet,trainLonger,largeBatchLSTM}，这时一组切片向量需要转换为二维向量，即需要对末尾补 0，因此在BLSTM模型中，要考虑到补 0 的无效数据。
 
 Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn()}，该函数用于从数据集加载数据后，对数据进行最后处理，本模块根据需要构造的校对函数如代码~\ref{code:collateFn} 所示。
 
@@ -599,9 +603,9 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
         \toprule
         & 测试用例总数 & 真实漏洞用例数 & 无漏洞用例数 & 安全污染流 & 不安全污染流 & 污染流总数 \\
         \midrule
-        OWASP & 10769 & 6377  & 4392  & 3501  & 6377  & 6377 \\
+        OWASP & 10769 & 6377  & 4392  & 3501  & 6377  & 9878 \\
         Juliet & 5217  & /     & /     & 550   & 3823  & 4373 \\
-        \textbf{RQ2} 实验数据 & /     & /     & /     & 4051  & 6927  & 10978 \\
+        \textit{RQ2} 实验数据 & /     & /     & /     & 4051  & 6927  & 10978 \\
         \bottomrule
     \end{tabular}%
     \label{tab:dataset}%
@@ -640,14 +644,14 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
         \multicolumn{2}{c}{\multirow{2}[4]{*}{}} & \multicolumn{2}{c}{预测结果} \\
         \cmidrule{3-4}    \multicolumn{2}{c}{} & \multicolumn{1}{l}{安全污染流} & \multicolumn{1}{l}{危险污染流} \\
         \midrule
-        \multirow{2}[2]{*}{污点分析结果} & 安全污染流 & 243   & 92 \\
-        & 危险污染流 & 32    & 655 \\
+        \multirow{2}[2]{*}{污点分析结果} & 安全污染流 & 329   & 80 \\
+        & 危险污染流 & 35    & 655 \\
         \bottomrule
     \end{tabular}%
     \label{tab:rq2}%
 \end{table}%
 
-\textbf{RQ2} 实验结果如表~\ref{tab:rq2} 所示，该结果进一步解释了系统之所以优于传统污点分析工具的原因，因为在测试集上，预测模块较为准确地准确预测了绝大多数的污染流，其识别出的安全污染流占实际安全污染流的72.54\%，同时预测仅仅将 32 例实际危险的污染流错误预测为安全，这保证了预测后的报告漏报率不会大幅度上升。
+\textbf{RQ2} 实验结果如表~\ref{tab:rq2} 所示，该结果进一步解释了系统之所以优于传统污点分析工具的原因，因为在测试集上，预测模块较为准确地准确预测了绝大多数的污染流，其识别出的安全污染流占实际安全污染流的80.44\%，同时预测仅仅将 35 例实际危险的污染流错误预测为安全，这保证了预测后的报告漏报率不会大幅度上升。
 
 综上，对于污点传播过程中污点无法传播的污染流，预测模块能够对其进行准确预测，从而在宏观上提高漏洞扫描的准确率。\\
 
