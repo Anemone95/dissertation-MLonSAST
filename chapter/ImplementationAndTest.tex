@@ -9,14 +9,14 @@
 代码如~\ref{code:xss} 所示，类 XSS 继承 HttpServlet，因此其可以通过重写 \textit{doGet()} 和 \textit{doPost()} 方法向用户提供HTTP服务，在 doGET 方法中，其从用户输出参数 \textit{p} 中获取值，接着判断值，若值以“safe”开头，则 \textit{q} 被赋值为 \textit{safe(p)}，否则 \textit{q} 被赋值为 \textit{unsafe(p)}，最终通过 \textit{sink()} 方法向用户返回 \textit{q}，在 \textit{doPOST()} 方法中，其直接调用 \textit{safe()} 方法，并将其返回。分析 \textit{safe()} 和 \textit{unsafe()} 方法不难发现，\textit{safe()} 方法是一个典型的过滤方法，而 \textit{unsafe()} 方法则存在安全性问题，这也造成 \textit{doGet()} 方法存在安全性问题，而 \textit{doPost()} 不存在安全问题。
 
 \section{污点分析模块的实现}\label{sec:taintImp}
-\subsection{污点分析时记录污点传播信息实现}
-在污点分析模块的设计章节中，提到了要想输出带有污点传播树信息的漏洞实例报告，必须在污点分析函数时记录函数内部信息，具体来说就是函数调用语句位置信息和函数返回位置信息。本小节将结合伪代码和具体事例，说明这一部分的实现。
+\subsection{记录污点传播信息实现}
+在污点分析模块的设计章节中，提到了要想输出带有污点传播树信息的漏洞实例报告，必须在污点分析函数时记录函数内部信息，具体来说，不仅要记录与污点传播相关函数调用的指令位置，还需要记录函数内返回污点的返回语句位置，以及函数调用语句位置。本小节将结合伪代码和具体事例，说明这一部分的实现。
 
 \begin{algorithm}[!htb]\footnotesize
 \caption{记录污点传播信息算法实现}
 \label{alg:noteTaint}
 \KwIn{$method$，函数上下文信息 }
-\KwOut{$R$, 返回语句位置集合；$I$, 调用语句位置集合；$T$, 于污点传播相关语句位置集合}
+\KwOut{$R$, 返回语句位置集合；$I$, 函数调用指令位置集合；$T$, 于污点传播相关函数调用指令集合}
 $mDesc \leftarrow getDesc(method)$\\
 $R \leftarrow \varnothing $\\
 $I \leftarrow \varnothing $\\
@@ -167,14 +167,15 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 切片控制模块的实现代码片段如代码~\ref{code:sliceControl} 所示，该代码出现在 SliceRunner 的 run() 方法中，主要功能是调用翻译器和切片器对一个目标项目中的所有漏洞切片，即执行流程图~\ref{sliceProcessing} 上的流程。
 
 %
-\begin{minipage}[c]{\textwidth}
+\begin{minipage}[!h!t!b!p]{0.9\textwidth}
     \lstinputlisting[language=Java, caption={切片控制模块实现代码片段}, label={code:sliceControl}]{FIGs/chapter4/sliceControl.java}
+    \vspace{-0.5cm}
 \end{minipage}
 
-\vspace{2.5cm}
+
+%\vspace{2.5cm}
 
 代码的第1行首先调用 reportParesr 将项目进行过滤和翻译，得到 taintProject， 接着第三行通过项目中的应用 Jar 包和依赖 Jar包，对 slicer 进行配置。接着遍历污点传播类型的漏洞实例，对于每一个实例，获取其污点传播树集合（第11行），接着遍里污点传播树，对每一个污点传播树进行切片（第19行），每完成一个漏洞实例后向监视器汇报进度（第24-25行），并且若是 Joana 类型的切片器，对切片器进行清除缓存的操作，防止缓存过多造成 OOM，最后返回切片项目。\\
-\pagebreak
 
 \subsubsection{过滤漏洞实例}
 
@@ -289,13 +290,21 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 对于第二点，为此模块在 SliceEntrypoint 类中重新写了 Entrypoint 类的\textit{ makeParameterTypes()} 和 \textit{makeArgument()} 方法，\textit{ makeParameterTypes()} 用在函数调用语句发生时，返回函数调用参数类型，这里当调用的参数类型为范围外的类时，函数返回一个伪造的类型，\textit{ makeArgument()} 用于当函数调用发生时，为实参创建一个实例，并返回实例节点的序号，这里当实参类型为范围外的类时，伪造一个虚节点加入序号表中，并将其返回。
 此外，模块实现 SliceEntrypoint 类的工厂类 SliceEntryPointFactory，并将其配置在 SDGBuilderConfig 实例的 entrypointFactory 属性中。
 
-% TODO 解释函数调用图结构
-
-用户上传的实际程序规模不可控，对其进行完整切片很可能造成物理资源耗尽或是程序崩溃，为此，模块在 \textit{NodeLimitPruner.prune()} 中实现了对调用图剪枝已完成限制调用图的切片，代码\ref{code:slicePruner} 描述了其过程。首先，初始化需要保留的CGNode集合 keep，接着通过广度优先搜索，向 keep 中加入不超过 nodeLimit 数量的节点，最后返回 keep 即可。
+用户上传的实际程序规模不可控，对其进行完整切片很可能造成物理资源耗尽或是程序崩溃，为此，模块在 \textit{NodeLimitPruner.prune()} 中实现了对调用图剪枝来限制切片规模，代码\ref{code:slicePruner} 描述了其过程。首先，初始化需要保留的CGNode集合 keep，接着通过广度优先搜索，向 keep 中加入不超过 nodeLimit 数量的节点，最后返回 keep 即可。
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Java, caption={NodeLimitPruner 的实现}, label={code:slicePruner}]{FIGs/chapter4/slicePruner.java}
 \end{minipage}
+
+
+下面以代码~\ref{code:xss}中 \textit{doGet()} 函数为例，说明剪枝过程，首先，WALA 会计算出如图~\ref{prune} 所示的函数调用图，\textit{fakeRootMethod()} 是 WALA 的一个抽象函数，是调用图的入口，遍历时通过该函数寻找其他函数，接着该函数会连向 \textit{fakeWorldClinit()}——该函数也是 WALA 的抽象函数，WALA 通过该函数调用其他类的构造方法；该函数还会连向\textit{XSS.<init>()} 是 XSS 类的构造方法，最后函数连向真正需要进行切片的入口方法 \textit{doGet()}，在 \textit{doGet()} 中由于调用其他函数，又会出现其他方法节点。在剪枝时，首先需要将\textit{fakeRootMethod()} 方法加入 keep，否则无法进行遍历找到其他方法；接着加入入口方法 \textit{doGet()} ，随后按顺序依次加入 \textit{safe()} 和 \textit{unsafe()}方法，如果限制调用节点数为 4，那么 \textit{sink()} 节点将被剪枝，即最后保留的函数依次为 \textit{fakeRootMethod()}、 \textit{doGet()}、\textit{safe()} 和 \textit{unsafe()}，可以看到在搜索时，代码还忽略了非应用定义的方法，如\textit{getParameter()}、\textit{startsWith()} 等，这是为了在有限集合内尽可能多的保留程序特性，而省略其共性（因为不管是安全和非安全代码，这些非应用函数内切片内容不变），同时被删去的\textit{sink()} 函数也并不是被彻底忽略，因为它会在其他子污染流中被计算。
+    
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIGs/chapter4/prune.pdf}
+    \caption{限制调用图示意图}\label{prune}
+\end{figure}
+
 
 \section{数据处理模块的实现}
 
