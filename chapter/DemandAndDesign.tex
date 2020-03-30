@@ -534,7 +534,7 @@ TaintGlobalData 类是一个单例类，使用 EhCache 保存被测程序中的�
 
 AbstractInjectionDetector 继承了 AbstractInjectionDetector，进一步实现了污点分析过程，即实现了 \textit{analyzeInst()} 和 \textit{report()} 方法，其属性 sinks 记录了目标应用的所有汇聚点，在所有类的分析完成后，依次调用 \textit{report()} 生成报告。其构造方法会调用，在 \textit{report()} 方法结束后，其会调用 TaintGlobalData 的 \textit{registerCache()} 方法，在 \textit{report()} 方法中，其会调用 \textit{releaseCache()} 方法。
 
-污点汇聚点的类名为 InjectionSink，其属性 caller 和 sinkMethod 为调用敏感函数的最后一个函数，以及敏感函数的函数摘要，除此之外，所有将污点汇聚到该点的调用语句有被记录在其 locations 列表上，\textit{addLocation()} 就是记录调用语句发生位置的方法，\textit{getBugInstance()} 方法为产生报告的具体方法，被 \textit{AbstractInjectionDetector.report()} 方法调用，本系统对该方法进行改进，方法中将调用构造污点传播图、传播树和生成漏洞实例方法。
+污点汇聚点的类名为 InjectionSink，其属性 caller 和 sinkMethod 为调用敏感函数的最后一个函数，以及敏感函数的函数摘要，除此之外，所有将污点汇聚到该点的调用语句有被记录在其 locations 列表上，\textit{addLocation()} 就是记录调用语句发生位置的方法，\textit{geit adtBugInstance()} 方法为产生报告的具体方法，被 \textit{AbstractInjectionDetector.report()} 方法调用，本系统对该方法进行改进，方法中将调用构造污点传播图、传播树和生成漏洞实例方法。
 
 上面提到的位置信息由 Location 类表示，其包含的属性有语句所在函数的函数摘要（mDesc），语句所在的字节码位置（byteCodeNo）和所在 CFG 代码块的序号（blockNo）。
 
