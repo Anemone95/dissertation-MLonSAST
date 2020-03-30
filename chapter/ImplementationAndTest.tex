@@ -52,9 +52,9 @@ $dataflow \leftarrow getDataflow(method)$;\\
 
 1-6 行为算法初始化阶段，包括获取函数的函数摘要，初始化算法输出集合 $R$、$I$和$T$，将函数初始被污染的参数个数 $initTaint$ 设为 -1（表示初始值还未设置），以及获取当前函数的数据流图。接下算法通过两层遍历，按数据流图顺序遍历每一个代码块中的每一条语句位置，在循环体中，首先根据语句位置获取语句内容，当$initTaint$未设置值时，将其赋值为获取第一条语句时的污染个数，通常该值小于等于该函数的参数个数（污点传播到一个或多个函数实参上）。
 
-若当前语句时一个返回值调用语句，由于一个函数内可能有若干条返回语句，并且返回语句未必会返回可能携带污点的变量，不传播污点的返回语句不需要记录在 $R$ 中，例如在代码片段~\ref{code:xss} 中，函数 \textit{unsafe()} 就存在两条返回语句，然而，第 25 行的返回语句并不可能传播污点，因此 25 行并不需要记录。 判断语句是否传播污点的方法是判断当前语句的传播的污点数量是否比刚进入时的污点数量多（根据FindSecBugs污点分析方法，即使函数原样返回实参，污点个数也会比初始值多1）。
+若当前语句时一个返回值调用语句，由于一个函数内可能有若干条返回语句，并且返回语句未必会返回可能携带污点的变量，不传播污点的返回语句不需要记录在 $R$ 中，例如在代码片段~\ref{code:xss} 中，函数 \textit{unsafe()} 就存在两条返回语句，然而，第 25 行的返回语句并不可能传播污点，因此 25 行并不需要记录。 判断语句是否传播污点的方法是判断当前语句的传播的污点数量是否比刚进入时的污点数量多（根据 Find Security Bugs 污点分析方法，即使函数原样返回实参，污点个数也会比初始值多1）。
 
-若语句是一条调用语句，首先通过该语句获取被调用的函数摘要，将当前位置和函数摘要一并放入 $I$ 中，不难看出 $I$ 实际上记录了该类的函数调用图，再做函数调用间分析，该分析已由原生 FindSecBugs 实现，这里不再赘述，根据分析结果判断汇聚点是否可以被当前函数调用影响，则向$T$中加入这一位置，以代码片段为例，当分析到第 8 行时，因为先前分析过 \textit{safe()} 可以传播污点（函数分析按调用图的拓扑排序进行），即 p 污点传播到了 q，又因为污点 \textit{q} 作为参数流入了汇聚点 \textit{sink()}，即根据污点传播结果发现汇聚点受到这次调用的影响，便将第 8 行加入 $T$ 中，同理，被加入 $T$的还有第 5 行（污点入口点）、第 9 行、第 11 行和第 12 行。\\
+若语句是一条调用语句，首先通过该语句获取被调用的函数摘要，将当前位置和函数摘要一并放入 $I$ 中，不难看出 $I$ 实际上记录了该类的函数调用图，再做函数调用间分析，该分析已由原生 Find Security Bugs 实现，这里不再赘述，根据分析结果判断汇聚点是否可以被当前函数调用影响，则向$T$中加入这一位置，以代码片段为例，当分析到第 8 行时，因为先前分析过 \textit{safe()} 可以传播污点（函数分析按调用图的拓扑排序进行），即 p 污点传播到了 q，又因为污点 \textit{q} 作为参数流入了汇聚点 \textit{sink()}，即根据污点传播结果发现汇聚点受到这次调用的影响，便将第 8 行加入 $T$ 中，同理，被加入 $T$的还有第 5 行（污点入口点）、第 9 行、第 11 行和第 12 行。\\
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Java, caption={构造污点传播图的实现}, label={code:taintGraph}]{FIGs/chapter4/taintGraph.java}
@@ -201,13 +201,13 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
     \lstinputlisting[language=Java, caption={漏洞过滤代码片段}, label={code:sliceTree}]{FIGs/chapter4/sliceTree.java}
 \end{minipage}
  
- 在代码中可以看出，对于待切片的污点传播树，首先将其拆解为污点传播流集合（第 2 行），再对每一污点传播流进行切片，将传播树与传播流的映射关系，以及传播流和切片的对应关系放入切片项目中。其中关键点是将污点传播树分解为污点传播流。
+ 在代码中可以看出，对于待切片的污点传播树，首先将其拆解为污染流集合（第 2 行），再对每一污点进行切片，将传播树与污染流的映射关系，以及污染流和切片的对应关系放入切片项目中。其中关键点是将污点传播树分解为污染流。
  
  \begin{algorithm}[!htb]\footnotesize
-     \caption{从污点传播树中分解污点传播流集合}
+     \caption{从污点传播树中分解污染流集合}
      \label{alg:getTaintFlows}
      \KwIn{$r$: 污点传播树树根}
-     \KwOut{$flows$, 传播流的集合}
+     \KwOut{$flows$, 污染流的集合}
      $flows \leftarrow \varnothing$\\
      $dfs(r)$\\
      \SetKwProg{Fn}{Function}{}{}
@@ -234,19 +234,19 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
      }
  \end{algorithm}
 
-算法~\ref{alg:getTaintFlows} 描述了分解过程，算法输入为一个传播树的树根，输出为传播流的集合，首先将初始化一个空的传播流集合，接着通过深度优先搜索得到所有传播流。在搜索过程中，依次遍历当前树节点下的所有孩子节点，如果节点是函数节点，先检查是否是汇聚点函数，如果是则将树根到当前位置作为一个污点传播流放入集合中，同时返回该函数内有汇聚点，如果不是则递归向下搜索，若该节点的函数内有污点汇聚点，将树根到当前节点位置放入集合中。若节点是返回值节点，则直接将从树根到当前节点的作为传播流放入集合中。
+算法~\ref{alg:getTaintFlows} 描述了分解过程，算法输入为一个传播树的树根，输出为污染流的集合，首先将初始化一个空的污染流集合，接着通过深度优先搜索得到所有污染流。在搜索过程中，依次遍历当前树节点下的所有孩子节点，如果节点是函数节点，先检查是否是汇聚点函数，如果是则将树根到当前位置作为一个污染流放入集合中，同时返回该函数内有汇聚点，如果不是则递归向下搜索，若该节点的函数内有污点汇聚点，将树根到当前节点位置放入集合中。若节点是返回值节点，则直接将从树根到当前节点的作为污染流放入集合中。
 
-从算法可以看出，传播流实际上是传播树上涉及的每一个函数和其对应的关注点，这里的关注点可能是返回语句，或是调用汇聚点函数的语句，例如，对于图~\ref{taintTree} 中的 Tree 1，可以得到 $doGet() \leftarrow sink()$、$safe() \leftarrow return$和$sink() \leftarrow write$污点传播流。\\
+从算法可以看出，污染流实际上是传播树上涉及的每一个函数和其对应的关注点，这里的关注点可能是返回语句，或是调用汇聚点函数的语句，例如，对于图~\ref{taintTree} 中的 Tree 1，可以得到 $doGet() \leftarrow sink()$、$safe() \leftarrow return$和$sink() \leftarrow write$污染流。\\
 
 ·\subsection{后向切片的实现}
 \subsubsection{基于 Joana 的后向切片}
-对于得到的传播流对象，需要由切片器其代码对其后向切片，本系统默认使用Joana对其切片，其主要过程如代码所示，该代码实现于 \textit{JoanaSlicer.computeSlice()} 方法中，展示部分删去了异常处理部分。
+对于得到的污染流对象，需要由切片器其代码对其后向切片，本系统默认使用Joana对其切片，其主要过程如代码所示，该代码实现于 \textit{JoanaSlicer.computeSlice()} 方法中，展示部分删去了异常处理部分。
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Java, caption={基于 Joana 的后向切片}, label={code:sliceJoana}]{FIGs/chapter4/sliceJoana.java}
 \end{minipage}
 
-代码首先要获取函数 func 的 SDG ，若该函数在缓存中存在，则直接拿出（第 3 行），若不存在，则需要根据配置和入口生成 SDG（第 5-11 行）。接着使用 SDG 初始化一个 JoanaSDGSlicer，获取关注点行号上的所有 SDGNode 并且对其切片。切片完成后，对其按行号进行排序——这主要保证了每一次对相同传播流的切片的输出一致性。最后将其格式化为字符串。
+代码首先要获取函数 func 的 SDG ，若该函数在缓存中存在，则直接拿出（第 3 行），若不存在，则需要根据配置和入口生成 SDG（第 5-11 行）。接着使用 SDG 初始化一个 JoanaSDGSlicer，获取关注点行号上的所有 SDGNode 并且对其切片。切片完成后，对其按行号进行排序——这主要保证了每一次对相同污染流的切片的输出一致性。最后将其格式化为字符串。
 
 在 \textit{JoanaSDGSlicer.slice()} 函数主要实现利用 Joana 包中的 SummarySlicerBackward 类对程序进行切片，并对切片的 SDGNode 集合进行过滤。对于需要移除的 SDNode 类型由 isRemovable() 实现，如代码~\ref{code:sliceJoanaRemove}实现。从代码中可以看到，如果 SDGNode 没有对应源代码、不存在于用户Jar包中、源代码行号小于0、代表异常节点、代表虚节点或抽象节点则将其移除。
 
@@ -348,7 +348,7 @@ SliceJavaClassLoader，SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
     \lstinputlisting[language=Java, caption={误报预测控制逻辑的实现}, label={code:predictRunner}]{FIGs/chapter4/predictRunner.java}
 \end{minipage}
 
-代码遍历 sliceProject 中的每一个实例、每个实例中的每个污点传播树，以及每个传播树中的污点传播流，从代码 20-23 行可以看出，只要树中的一条传播流是安全的，那么整个传播树就是安全的，对应的安全流会保存到 safeFlows 集合中。从第 27 行可以看到，只有当所有的污点传播树都是安全时，一个漏洞实例才可判断为误报，最后，将安全的流放入预测项目中作为证明，以及将是否为误报的结果也放入项目中。\textit{flowIsSafe()} 在调用远程预测服务前，会先检查缓存是否已有记录，若存在记录则直接将其返回，否则调用远程服务。\\
+代码遍历 sliceProject 中的每一个实例、每个实例中的每个污点传播树，以及每个传播树中的污染流，从代码 20-23 行可以看出，只要树中的一条污染流是安全的，那么整个传播树就是安全的，对应的安全流会保存到 safeFlows 集合中。从第 27 行可以看到，只有当所有的污点传播树都是安全时，一个漏洞实例才可判断为误报，最后，将安全的流放入预测项目中作为证明，以及将是否为误报的结果也放入项目中。\textit{flowIsSafe()} 在调用远程预测服务前，会先检查缓存是否已有记录，若存在记录则直接将其返回，否则调用远程服务。\\
 
 \vspace{1cm}
 \subsection{误报预测时序图}
@@ -483,7 +483,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{testcase:taint}
 \end{table}
 
-在程序切片模块，主要有一个测试套件TS3，即测试系统能否成功将污点分析项目转化为切片项目，在切片项目中，存在污点传播树和其对应的污点传播流，每个污点传播对应一条切片。该测试套件对应的测试用例如表~\ref{testcase:slice} 所示，其主要包含有 TC3-1，对上一模块产生的分析结果进行处理，从报告中还原污点传播树；TC3-2，拆解污点污点传播树，将一颗传播树拆解为子污染流的集合；TC3-3，对一个污染流进行后向切片，由于 Joana 自身存在 bug，当切片成功时，程序返回切片文本，在切片失败时扫描任务不崩溃，并返回错误原因。经过测试，以上测试用例输出均与预期相符，测试全部通过。
+在程序切片模块，主要有一个测试套件TS3，即测试系统能否成功将污点分析项目转化为切片项目，在切片项目中，存在污点传播树和其对应的污染流，每个污点传播对应一条切片。该测试套件对应的测试用例如表~\ref{testcase:slice} 所示，其主要包含有 TC3-1，对上一模块产生的分析结果进行处理，从报告中还原污点传播树；TC3-2，拆解污点污点传播树，将一颗传播树拆解为子污染流的集合；TC3-3，对一个污染流进行后向切片，由于 Joana 自身存在 bug，当切片成功时，程序返回切片文本，在切片失败时扫描任务不崩溃，并返回错误原因。经过测试，以上测试用例输出均与预期相符，测试全部通过。
 
 \begin{table}[!htb]\footnotesize
     \centering
@@ -559,7 +559,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 
 其中有 4 个构建为 aar 格式，由于系统只能输入 Jar 格式，因此实际参与测试的文件为 96 个 Jar 包文件，在 96 个 Jar 文件中，有 14 个Jar 文件内无 “.class”文件，系统均在能启动扫描时检测并提示用户 Jar 包不合法，并正常退出。对于剩下的 82 个文件，系统在限定时间内返回扫描结果，即扫描成功率为 100\%，至此本文认为该系统具有较高的健壮性。
 
-在系统性能方面，可以看出对于测试的 Jar 包，系统最短扫描时间仅有 7.21 s，对应的 Jar 包为 support-annotations-27.1.1.jar~\footnote{\url{https://mvnrepository.com/artifact/com.android.support/support-annotations/27.1.1}}，这一类包的特点在于其本身项目较小，项目中与安全有关的函数（Sink 点）调用也相对较少，因此其分析时间也较短；平均扫描时间为 67.22s，这也意味着对于绝大多数的 Jar 包，开发者在一分钟左右即可收到扫描结果；系统最长扫描时间为 1815.24s，对应的 Jar 包为 groovy-all-2.4.7.jar ~\footnote{\url{https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all/2.4.7}}，该包为 Groovy 语言的解释器，因此代码中会出现大量的安全相关函数和入口点，因此分析时间较长，但是系统仍能在一个小时之内给出扫描报告，对于大型项目而言，本文认为这是合理的。
+在系统性能方面，可以看出对于测试的 Jar 包，系统最短扫描时间仅有 7.21s，对应的 Jar 包为 support-annotations-27.1.1.jar~\footnote{\url{https://mvnrepository.com/artifact/com.android.support/support-annotations/27.1.1}}，这一类包的特点在于其本身项目较小，项目中与安全有关的函数（Sink 点）调用也相对较少，因此其分析时间也较短；平均扫描时间为 67.22s，这也意味着对于绝大多数的 Jar 包，开发者在一分钟左右即可收到扫描结果；系统最长扫描时间为 1815.24s，对应的 Jar 包为 groovy-all-2.4.7.jar ~\footnote{\url{https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all/2.4.7}}，该包为 Groovy 语言的解释器，因此代码中会出现大量的安全相关函数和入口点，因此分析时间较长，但是系统仍能在一个小时之内给出扫描报告，对于大型项目而言，本文认为这是合理的。
 
 本系统对于各类 Jar 包有较高的健壮性，并且能较为及时的完成扫描任务，在保证代码安全同时不会影响代码开发进度。\\
 
@@ -571,7 +571,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 \begin{itemize}
     \itemindent 2.8em
     \item[\textbf{RQ1:}] 与目前流行的污点分析系统相比，本系统是否能有效降低误报？
-    \item[\textbf{RQ2:}] 对于本系统中预测的基本单位——污点传播流，本系统模型是否有较高的准确性？
+    \item[\textbf{RQ2:}] 对于本系统中预测的基本单位——污染流，本系统模型是否有较高的准确性？
 \end{itemize}
 
 \textbf{RQ1} 直接回答了用户最关键的问题，因为本系统的主要目标即降低误报提高准确性。
@@ -596,14 +596,14 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{tab:confusionMatrix}%
 \end{table}
 
-在 \textbf{RQ1} 中，本文将本系统与目前流行的 FindSecBugs 扫描报告做对比，将数据集的 90\% 作为训练集，10\% 作为测试集（对于 FindSecBugs 而言，其没有训练过程，只对测试集用例进行扫描）再根据两系统的扫描报告，以准确率（Accuracy）、精确率（Precision）、找回率（Recall）和 $F_{1}$ 作为度量比较系统准确性，为了解释这些度量计算方法，首先介绍对于扫描报告的混淆矩阵，如表~\ref{tab:confusionMatrix} 所示，对于每一个测试用例，扫描结果会对其报告为存在漏洞和不存在漏洞，因此产生实际为漏洞且扫描结果为漏洞的用例数 TP，实际为漏洞且扫描结果为无漏洞的用例数 FN （漏报数），实际无漏洞且扫描结果为有漏洞的用例数 FP（误报数）和实际无漏洞且扫描结果为无漏洞的用例数 TN，在此基础上，报告的准确率计算方式为 $Accuracy=\frac{TP+TN}{TP+FN+FP+FN}$、漏洞精确率为 $Precision=\frac{TP}{TP+FP}$、漏洞召回率为 $Recall=\frac{TP}{TP+FN}$ 以及 $F_1$ 计算方式为 $F_{1}=\frac{2 \cdot Precision \cdot Recall}{Precision+Recall}$。
+在 \textbf{RQ1} 中，本文将本系统与目前流行的 Find Security Bugs 扫描报告做对比，将数据集的 90\% 作为训练集，10\% 作为测试集（对于 Find Security Bugs 而言，其没有训练过程，只对测试集用例进行扫描）再根据两系统的扫描报告，以准确率（Accuracy）、精确率（Precision）、找回率（Recall）和 $F_{1}$ 作为度量比较系统准确性，为了解释这些度量计算方法，首先介绍对于扫描报告的混淆矩阵，如表~\ref{tab:confusionMatrix} 所示，对于每一个测试用例，扫描结果会对其报告为存在漏洞和不存在漏洞，因此产生实际为漏洞且扫描结果为漏洞的用例数 TP，实际为漏洞且扫描结果为无漏洞的用例数 FN （漏报数），实际无漏洞且扫描结果为有漏洞的用例数 FP（误报数）和实际无漏洞且扫描结果为无漏洞的用例数 TN，在此基础上，报告的准确率计算方式为 $Accuracy=\frac{TP+TN}{TP+FN+FP+FN}$、漏洞精确率为 $Precision=\frac{TP}{TP+FP}$、漏洞召回率为 $Recall=\frac{TP}{TP+FN}$ 以及 $F_1$ 计算方式为 $F_{1}=\frac{2 \cdot Precision \cdot Recall}{Precision+Recall}$。
 
 在 \textbf{RQ2} 中，首先使用污点分析和切片模块得到污染流切片，再根据数据集标签对污染流进行标记，并使用预处理和预测模块对其进行训练，最后通过预测结果的混淆矩阵评估预测效果。
 
 不论在 \textbf{RQ1} 还是 \textbf{RQ2} 中，本文每次实验重复三次取平均值作为最终结果。
 
 \subsubsection{评估数据集}
-本文使用 OWASP Benchmark v1.1~\footnote{https://owasp.org/www-project-benchmark/} （ 简称 OWASP）和 Juliet Test Suite for Java v1.3~\footnote{https://samate.nist.gov/SARD/testsuite.php} （ 简称 Juliet）作为数据集，由于 Juliet 数据集存在大量多个入口点共用一个汇聚点的漏洞情况，导致大部分漏洞均为正报（因为只要漏洞实例中任意一棵传播树是不安全的，那么漏洞就是真实存在的），从而无法在 RQ1 中使用，其将在 RQ2 和真实系统上线时，作为切片训练集使用，表~\ref{tab:dataset} 中显示了各个数据集中的数据量大小。
+本文使用 OWASP Benchmark v1.1~\footnote{https://www.owasp.org/index.php/Benchmark} （ 简称 OWASP）和 Juliet Test Suite for Java v1.3~\footnote{https://samate.nist.gov/SARD/testsuite.php} （ 简称 Juliet）作为数据集，由于 Juliet 数据集存在大量多个入口点共用一个汇聚点的漏洞情况，导致大部分漏洞均为正报（因为只要漏洞实例中任意一棵传播树是不安全的，那么漏洞就是真实存在的），从而无法在 RQ1 中使用，其将在 RQ2 和真实系统上线时，作为切片训练集使用，表~\ref{tab:dataset} 中显示了各个数据集中的数据量大小。
 
 \begin{table}[htbp]\footnotesize
     \centering
@@ -620,25 +620,25 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{tab:dataset}%
 \end{table}%
 
-由于本系统只能处理部分类型，因此本文对以上两个数据集进行筛选，去掉了 FindSecBugs 中无法用污点分析检测的漏洞类型，因此表中测试用例总数会比数据集公布的数目少，对于 Juliet 数据集，由于其中不安全的数据流较多，直接用于模型训练会造成数据倾斜，因此本文只随机挑选与安全数据流数量相等的不安全数据流用于训练和测试。\\
+由于本系统只能处理部分类型，因此本文对以上两个数据集进行筛选，去掉了 Find Security Bugs 中无法用污点分析检测的漏洞类型，因此表中测试用例总数会比数据集公布的数目少，对于 Juliet 数据集，由于其中不安全的数据流较多，直接用于模型训练会造成数据倾斜，因此本文只随机挑选与安全数据流数量相等的不安全数据流用于训练和测试。\\
 
 \subsubsection{RQ1 实验结果}
 
 \begin{table}[htbp]
     \centering
-    \caption{本系统与 FindSecBugs 对比结果}
+    \caption{本系统与 Find Security Bugs 对比结果}
     \begin{tabular}{lrrrr}
         \toprule
         & \multicolumn{1}{l}{准确率} & \multicolumn{1}{l}{精确率} & \multicolumn{1}{l}{召回率} & \multicolumn{1}{l}{F1} \\
         \midrule
-        FindSecBugs & 68.40 \% & 65.09 \% & \textbf{100.00 \%} & 78.51 \% \\
+        Find Security Bugs & 68.40 \% & 65.09 \% & \textbf{100.00 \%} & 78.51 \% \\
         本系统   & \textbf{87.84 \%} & \textbf{90.53 \%} & 88.65 \% & \textbf{89.58 \% }\\
         \bottomrule
     \end{tabular}%
     \label{tab:rq1}%
 \end{table}%
 
-\textit{RQ1} 结果如表~\ref{tab:rq1} 所示。可以看出，为了不发生漏报，FindSecBugs 产生了非常高的误报率（误报率为1-65.09\%=34.91\%）从而导致准确率和 F1 值水平也较低，如不准确的漏洞报告不仅会给安全工程师造成巨大压力，更可能造成用户对系统的不信任，而本系统结合了污点分析和机器学习的优势，仅牺牲了 11.35\% 的召回率，将精确率提高到了90\%以上，即平均系统中报告的 10 个漏洞中，只有一例可能为误报。在准确率和 F1 指标上也远高于 FindSecBugs，这说明了牺牲召回率具有想当高的收益比，对于新产生的漏报，安全工程师仍可以通过其他检测手段（如黑盒测试、灰盒测试）加以弥补，配合白盒扫描系统共同保障应用安全。
+\textit{RQ1} 结果如表~\ref{tab:rq1} 所示。可以看出，为了不发生漏报，Find Security Bugs 产生了非常高的误报率（误报率为1-65.09\%=34.91\%）从而导致准确率和 F1 值水平也较低，如不准确的漏洞报告不仅会给安全工程师造成巨大压力，更可能造成用户对系统的不信任，而本系统结合了污点分析和机器学习的优势，仅牺牲了 11.35\% 的召回率，将精确率提高到了90\%以上，即平均系统中报告的 10 个漏洞中，只有一例可能为误报。在准确率和 F1 指标上也远高于 Find Security Bugs，这说明了牺牲召回率具有想当高的收益比，对于新产生的漏报，安全工程师仍可以通过其他检测手段（如黑盒测试、灰盒测试）加以弥补，配合白盒扫描系统共同保障应用安全。
 
 综上，相较于传统污点分析类扫描器，本系统能够更为准确的发现漏洞，并且提升准确性的代价较小。\\
 
@@ -651,10 +651,10 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \begin{tabular}{clrr}
         \toprule
         \multicolumn{2}{c}{\multirow{2}[4]{*}{}} & \multicolumn{2}{c}{预测结果} \\
-        \cmidrule{3-4}    \multicolumn{2}{c}{} & \multicolumn{1}{l}{安全污染流} & \multicolumn{1}{l}{危险污染流} \\
+        \cmidrule{3-4}    \multicolumn{2}{c}{} & \multicolumn{1}{l}{安全污染流} & \multicolumn{1}{l}{不安全污染流} \\
         \midrule
         \multirow{2}[2]{*}{污点分析结果} & 安全污染流 & 329   & 80 \\
-        & 危险污染流 & 35    & 655 \\
+        & 不安全污染流 & 35    & 655 \\
         \bottomrule
     \end{tabular}%
     \label{tab:rq2}%
@@ -704,7 +704,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \caption{标记正报界面}\label{show:labelTP}
 \end{figure}
 
-对于报告中不可利用的正报漏洞，用户可以将其标记为误报，右击漏洞实例选择“Label as False Positive”即可弹出标记误报的界面，如图~\ref{show:labelFP} 所示，标记误报时用户需要在下拉菜单中指定一条污点传播流，同时用户可以在下方看到关于此污染流的切片内容，对误报的标记实际是对安全的污点传播流标记，标记完成后系统会重新计算并更新漏洞树，用户可以多次点击标记，直至该漏洞的标记变为“[L:FP]”（标记为误报）。
+对于报告中不可利用的正报漏洞，用户可以将其标记为误报，右击漏洞实例选择“Label as False Positive”即可弹出标记误报的界面，如图~\ref{show:labelFP} 所示，标记误报时用户需要在下拉菜单中指定一条污染流，同时用户可以在下方看到关于此污染流的切片内容，对误报的标记实际是对安全的污染流标记，标记完成后系统会重新计算并更新漏洞树，用户可以多次点击标记，直至该漏洞的标记变为“[L:FP]”（标记为误报）。
 
 % 标记误报
 \begin{figure}[!htbp]
