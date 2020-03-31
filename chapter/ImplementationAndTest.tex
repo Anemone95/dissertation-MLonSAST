@@ -363,7 +363,7 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 用户可以对一个漏洞进行误报或正报的标记，首先看误报标记流程，对于一个误报漏洞实例，用户首先需要提供证据，即指定污点消失于哪一段污染流中，接着GUI界面会生成一个 Label 实例并向预测器发送标记为安全污染流的请求，本地预测器会将请求转发到服务端的 View 层，View 层收到请求后将标记数据依次写入数据库和本地文件中，由于污染流哈希的唯一性，当数据库存在已有标签时会自动覆盖。
 
-对于一个正报标记，用户只需指定漏洞实例的一个传播树即可，因为一个真实的漏洞的只要有一棵传播树的污点传播成立，该漏洞就是真实存在的，因此 GUI 收到请求后会遍历传播树相关的所有切片，并发送标记为不安全的标签。对于每一个不安全标签的标记时序与安全标记时序相同，这里不再赘述。
+对于一个正报标记，用户只需指定漏洞实例的一个可利用的传播树即可，因为一个真实的漏洞的只要有一棵传播树的污点传播成立，该漏洞就是真实存在的，GUI 收到请求后会遍历传播树相关的所有切片，并发送标记为不安全的标签。对于每一个不安全标签的标记时序与安全标记时序相同，这里不再赘述。
 
 
 \begin{figure}[htbp]
@@ -664,7 +664,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 图~\ref{show:taint} 展示了系统污点分析结果界面，该界面主要沿用了 Spotbugs 界面，在菜单栏可以新建，读取，保存扫描项目，对 UI 进行调整以及进行预测。左上方窗口显示了按类型整理的漏洞实例，由于用户还未对漏洞进行预测和标记，因此每个叶子节点的开头显示为“[P:UNK][L:ULB]”，左下方显示了一个漏洞实例的污点传播树——这是本系统的主要改进之处，右上方为对应的程序代码，右下方为关于该漏洞的解释信息。
 
 % 污点分析结果
-\begin{figure}[!htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{FIGs/chapter4/taintAnalysis.png}
     \caption{污点分析结果界面}\label{show:taint}
@@ -673,38 +673,44 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 图~\ref{show:settingServer} 展示了设置预测服务器的界面，点击上方菜单栏“AI”中的“Setting Remote Server”将会出现该界面，设置预测服务器是进行误报预测的首要步骤，在设置服务器窗口中，用户需要指定服务器的 URL 地址和管理员发放的 token。
 
 % 设置预测服务器
- \begin{figure}[!htbp]
+ \begin{figure}[H]
      \centering
      \includegraphics[width=0.8\linewidth]{FIGs/chapter4/settingServer.png}
      \caption{设置预测服务器界面}\label{show:settingServer}
  \end{figure} 
 
-点击上方菜单栏“AI”中的“Slice and Predict”按钮，系统将对污点分析结果进行误报预测，图~\ref{show:predictResult} 展示了预测后一个被预测为误报的漏洞实例，在左上方，可以看到该漏洞实例的叶子节点已经变灰，且预测显示为“[P:FP]”（误报），在左下方，可以看到被预测为清洁函数的污染流已经由有清洁标记标注，这些标记用于向用户解释系统为何将其预测为误报。另外，可以看到图中的代码正是第二章中图~\ref{taintcase2} 中的代码，根据第二章的分析，该代码是为有效的 SSRF 修复代码，而本系统已经能够做出正确的预测，这证明了本系统确实可以根据先前的学习，排除误报。
+点击上方菜单栏“AI”中的“Slice and Predict”按钮，系统将对污点分析结果进行误报预测，图~\ref{show:predictResult} 展示了预测后一个被预测为误报的漏洞实例，在左上方，可以看到该漏洞实例的叶子节点已经变灰，且预测显示为“[P:FP]”（误报），在左下方，可以看到被预测为清洁函数的污染流已经由有清洁标记标注，这些标记用于向用户解释系统为何将其预测为误报。
 
 % 预测结果
-\begin{figure}[!htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{FIGs/chapter4/predictResult.png}
     \caption{预测结果展示}\label{show:predictResult}
 \end{figure}
 
+另外，可以看到图中的代码正是第二章中图~\ref{taintcase2} 中的代码，根据第二章的分析，该代码是为有效的 SSRF 修复代码，而本系统已经能够做出正确的预测，这证明了本系统确实可以根据先前的学习，排除误报。
+
 对于报告中真实存在的漏洞，用户可以对其标记为正报，右击漏洞实例选择“Label as True Positive”即可弹出标记正报的界面，如图~\ref{show:labelTP} 所示，标记正报时用户必须在下拉菜单中选择一棵真实可以利用的污点传播树，点击提交后标记完成，完成后系统会更新左侧漏洞树，将“[L:ULB]”（未标记）转变为“[L:TP]”（标记为正报）。
 
 % 标记正报
-\begin{figure}[!htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{FIGs/chapter4/labelTP.png}
     \caption{标记正报界面}\label{show:labelTP}
 \end{figure}
 
-对于报告中不可利用的正报漏洞，用户可以将其标记为误报，右击漏洞实例选择“Label as False Positive”即可弹出标记误报的界面，如图~\ref{show:labelFP} 所示，标记误报时用户需要在下拉菜单中指定一条污染流，同时用户可以在下方看到关于此污染流的切片内容，对误报的标记实际是对安全的污染流标记，标记完成后系统会重新计算并更新漏洞树，用户可以多次点击标记，直至该漏洞的标记变为“[L:FP]”（标记为误报）。
+对于报告中不可利用的正报漏洞，用户可以将其标记为误报，右击漏洞实例选择“Label as False Positive”即可弹出标记误报的界面，如图~\ref{show:labelFP} 所示。
 
 % 标记误报
-\begin{figure}[!htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{FIGs/chapter4/labelFP.png}
     \caption{标记误报界面}\label{show:labelFP}
 \end{figure}
+
+
+标记误报时用户需要在下拉菜单中指定一条污染流，同时用户可以在下方看到关于此污染流的切片内容，对误报的标记实际是对安全的污染流标记，标记完成后系统会重新计算并更新漏洞树，用户可以多次点击标记，直至该漏洞的标记变为“[L:FP]”（标记为误报）。
+
 
 
 
