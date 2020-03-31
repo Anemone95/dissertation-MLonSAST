@@ -5,7 +5,6 @@ public Set<CGNode> prune(final SDGBuilder.SDGBuilderConfig cfg, final CallGraph 
     CGNode head = cg.getFakeRootNode();
     keep.add(head);
     marked.add(head);
-
     marked.addAll(cg.getEntrypointNodes());
     keep.addAll(cg.getEntrypointNodes());
     queue.addAll(cg.getEntrypointNodes());

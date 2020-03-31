@@ -2,13 +2,18 @@ SDG sdg = null;
 if (sdgCache.containsKey(func)) {
     sdg = sdgCache.get(func);
 } else {
-    String entryClass = "L" + func.className.replace('.', '/');
-    String entryMethod = func.methodName;
-    String entrySig = func.methodSig;
-    config.entry = findMethod(config, entryClass, entryMethod, entrySig);
-    sdg = SDGBuilder.build(config, new SliceMonitor());
-    CSDGPreprocessor.preprocessSDG(sdg);
-    sdgCache.put(func, sdg);
+    try {
+        String entryClass = "L" + func.className.replace('.', '/');
+        String entryMethod = func.methodName;
+        String entrySig = func.methodSig;
+        config.entry = findMethod(config, entryClass, entryMethod, entrySig);
+        sdg = SDGBuilder.build(config, new SliceMonitor());
+        CSDGPreprocessor.preprocessSDG(sdg);
+        sdgCache.put(func, sdg);
+        LOGGER.info("Computing Slice...");
+    } catch (Exception e) {
+        throw new SlicerException(e.getMessage(), e);
+    }
 }
 JoanaSDGSlicer jSlicer = new JoanaSDGSlicer(sdg);
 HashSet<SDGNode> sinkNodes = jSlicer.getNodesAtLocation(line);
