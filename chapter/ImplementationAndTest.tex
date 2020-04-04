@@ -324,9 +324,11 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 泛化包名方法名，此类泛化主要对于 ENTER 类型的节点，如第 1 行，这里需要将切片拆分为“包名\_方法名\_函数参数类型”，如将“demo.XSS.unsafe(java.la-\\ng.String)”泛化为“demo XSS unsafe ( java.lang.String )”。\\
 
+数字常量、字符串常量和变量的泛化分别在 Preprocessing 类中 \textit{processNumber()}、\textit{processStr()} 和 \textit{processVer()} 中实现，对于函数调用和包名方法名的泛化在 \textit{processType()} 实现
+
 \subsection{建立单词表与向量化}
 
-在本模块中，泛化后字符串首先生成单词表，再按照单词表可以对句子进行向量化。其实现代码如代码~\ref{code:preTokenize} 所示。
+在本模块 Tokenizer 类中，泛化后字符串首先生成单词表，再按照单词表可以对句子进行向量化。其实现代码如代码~\ref{code:preTokenize} 所示。
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Python, caption={建立单词表和向量化的实现}, label={code:preTokenize}]{FIGs/chapter4/preTokenize.py}
@@ -361,9 +363,9 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 本模块的另一重要流程在于对漏洞实例的标记，时序图~\ref{labelTime} 展示了漏洞标记的实现过程。
 
-用户可以对一个漏洞进行误报或正报的标记，首先看误报标记流程，对于一个误报漏洞实例，用户首先需要提供证据，即指定污点消失于哪一段污染流中，接着GUI界面会生成一个 Label 实例并向预测器发送标记为安全污染流的请求，本地预测器会将请求转发到服务端的 View 层，View 层收到请求后将标记数据依次写入数据库和本地文件中，由于污染流哈希的唯一性，当数据库存在已有标签时会自动覆盖。
+用户可以对一个漏洞进行误报或正报的标记，首先看误报标记流程，对于一个误报漏洞实例，用户需要提供误报原因，即指定污点消失于那些污染流中，接着GUI界面会生成一个 Label 实例并向预测器发送标记为安全污染流的请求，本地预测器会将请求转发到服务端的 View 层，View 层收到请求后将标记数据依次写入数据库和本地文件中，由于污染流哈希的唯一性，当数据库存在已有标签时会自动覆盖。
 
-对于一个正报标记，用户只需指定漏洞实例的一个可利用的传播树即可，因为一个真实的漏洞的只要有一棵传播树的污点传播成立，该漏洞就是真实存在的，GUI 收到请求后会遍历传播树相关的所有切片，并发送标记为不安全的标签。对于每一个不安全标签的标记时序与安全标记时序相同，这里不再赘述。
+对于一个正报标记，用户需指定漏洞实例的一个可利用的传播树，因为一个真实的漏洞的只要有一棵传播树的污点传播成立，该漏洞就真实存在，GUI 收到请求后会遍历传播树相关的所有切片，并发送标记为不安全的标签。对于每一个不安全标签的标记时序与安全标记时序相同，这里不再赘述。
 
 
 \begin{figure}[htbp]
@@ -377,23 +379,23 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 用户在 Web 端可以发起训练任务，Celery Worker 收到训练任务后，会调用训练服务按指定配置训练 BLSTM 神经网络。
 
 % https://www.zhihu.com/question/32673260
-该模型训练时的输入为切片向量集合，对应标记集合，输出为一个训练好参数的 BLSTM 模型。由于程序切片大小有差异，切片向量长度也是不一致的，对于时序型神经网络 BLSTM 来说，本身就具有接受不定长向量的能力，然而在实际训练时，为了保证训练效率和效果，往往会将一批切片向量和对应标记合并一为一批输入神经网络，再进行权重更新——批训练~\cite{imageNet,trainLonger,largeBatchLSTM}，这时一组切片向量需要转换为二维向量，即需要对末尾补 0，因此在BLSTM模型中，要考虑到补 0 的无效数据。
+该模型训练时的输入为切片向量集合，对应标记集合，输出为一个训练好参数的 BLSTM 模型。由于程序切片大小有差异，切片向量长度也是不一致的，对于时序型神经网络 BLSTM 来说，本身就具有接受不定长向量的能力，然而在实际训练时，为了保证训练效率和效果，往往会将一批切片向量和对应标记合并为一批数据输入神经网络，再进行权重更新——批训练~\cite{imageNet,trainLonger,largeBatchLSTM}，这时一组切片向量需要转换为二维向量，即需要对末尾补 0，因此在BLSTM模型中，要考虑无效数据。
 
-Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn()}，该函数用于从数据集加载数据后，对数据进行最后处理，本模块根据需要构造的校对函数如代码~\ref{code:collateFn} 所示。
+Pytorch 的 DataLoader 对象可手动指定校对函数 \textit{collate\_fn()}，该函数用于从数据集加载数据后，对数据进行最后处理，本模块根据需要构造的校对函数如代码~\ref{code:collateFn} 所示。
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Python, caption={DataLoader 的加载器}, label={code:collateFn}]{FIGs/chapter4/collateFn.py}
 \end{minipage}
 
-可以看出，该函数的输入为一个向量化类和一批数据集合，该集合中存放切片字符串和对应标记对，对于每一个标记对，首先调用预处理模块对其泛化和向量化（第 3 行），接着按切片长度从长到短对一批数据排序，获取每条切片的长度记为 data\_length 变量，使用 pytorch 预定义的函数 \textit{rnn\_utils.pad\_sequence()} 对已排好序的一批数据进行补 0，此时 data\_x 类型已由原先的 list 类型变为二维张量（Tensor）类型，最后将这批数据的标记作为一维向量，最后函数返回切片张量（二维），切片长度张量（一维）和标记（一维）。
+可以看出，该函数的输入为一个向量化类和一批数据集合，该集合中存放切片字符串和对应标记对，对于每一个标记对，首先调用预处理模块对其泛化和向量化（第 3 行），接着按切片长度从长到短对一批数据排序，获取每条切片的长度记为 data\_length 变量，使用 Pytorch 预定义的函数 \textit{rnn\_utils.pad\_sequence()} 对已排好序的一批数据进行补 0，此时 data\_x 类型已由原先的 list 类型变为二维张量（Tensor）类型，最后将这批数据的标记作为一维向量，最后函数返回切片张量（二维），切片长度向量（一维）和标记向量（一维）。
 
-接着切片张量和切片长度张量将传递至 BLSTM 类的 forward() 方法中，代码~\ref{code:blstm} 展示了神经网络后向传播的细节。
+接着切片张量和切片长度向量将传递至 BLSTM 类的 forward() 方法中，代码~\ref{code:blstm} 展示了神经网络后向传播的细节。
 
 \begin{minipage}[!htbp]{0.9\textwidth}
     \lstinputlisting[language=Python, caption={DataLoader 的加载器}, label={code:blstm}]{FIGs/chapter4/blstm.py}
 \end{minipage}
 
-首先，对于切片张量进行词嵌入，其输出的 embeds 即变为三维张量，注意这里词嵌入已经指定了 padding 值，即将补其用的数字映射为全 0 向量。接着使用 pytorch 定义的 \textit{rnn\_utils.pack\_padded\_sequence()} 函数将实际上不等长的切片向量打包，接着打包数据传递至 BLSTM 层，再将 BLSTM 层输出还原至三维张量，注意，此时张量规模为记录数 $\times$ 最长语句长度 $\times$ BLSTM神经元个数。 \textit{get\_last\_output()} 会获取该三维张量上每一记录的双向传播时最后一时刻的神经元输出，并整合为一二维张量，最终输出到线性层，线性层返回预测结果。
+首先，对于切片张量进行词嵌入，即使用向量替换每一个词，其输出的 embeds 为三维张量，注意这里词嵌入已经指定了 padding 值，即将补齐用的数字映射为全 0 向量。接着使用 Pytorch 定义的 \textit{rnn\_utils.pack\_padded\_sequence()} 函数将实际上不等长的切片向量打包，打包数据传递至 BLSTM 层， BLSTM 层输出还原至三维张量，注意，此时张量规模为记录数 $\times$ 最长语句长度 $\times$ BLSTM神经元个数。 \textit{get\_last\_output()} 会获取该三维张量上每一记录的双向传播时最后一时刻的神经元输出，并整合为一二维张量，最终输出到线性层，线性层返回预测结果。
 
 \begin{figure}[!htb]
     \centering
@@ -401,15 +403,15 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \caption{批处理训练示意图}\label{blstmForward}
 \end{figure}
 
-图~\ref{blstmForward} 展示了 \textit{get\_last\_output()} 的具体做法，假设一批数据中存在两条数据 record 1 和 record 2， 它们有效的切片向量长度为 3 和 4，经过 BLSTM 神经网络后，正反方向分别产生了每个时刻上的输出，此时对于记录 1 来说，需要提取最后一个时刻的神经元输出，即 $O_3$ 向量和 $O_3'$ 向量，并将其合并，对于记录 2 来说，提取并合并为 $\left[O_{4}, O_{4}'\right]$，最后该批数据为二维张量，再输入至线性层，也就是说，线性层神经元个数为 BLSTM 神经元个数的两倍。
+图~\ref{blstmForward} 展示了批处理训练的具体做法，假设一批数据中存在两条数据 record 1 和 record 2， 它们有效的切片向量长度为 3 和 4，将它们的单词做词嵌入后，得到张量$\{V_{1},V_{2},V_{3}\}$ 和$\{V_{1},V_{2},V_{3},V_{4}\}$，经过 BLSTM 神经网络后，正反方向分别产生了每个时刻上的输出，此时对于记录 1 来说，需要提取最后一个时刻的神经元输出，即 $O_3$ 向量和 $O_3'$ 向量，并将其合并，对于记录 2 来说，提取并合并为 $\left[O_{4}, O_{4}'\right]$，该二维张量输入至线性层，得到最终分类结果。也就是说，线性层神经元个数为 BLSTM 神经元个数的两倍。
 
 \section{系统测试与运行展示}
 \subsection{测试目标}
-本系统测试主要安排功能测试和性能测试，在功能测试方面主要对系统功能的正确性进行测试；而健壮性和性能测试主要关注于本系统在扫描各类被测应用时的程序不崩溃，并能在合理时间内返回数据。
+本系统测试主要有功能测试、健壮性和性能测试，在功能测试方面主要对系统功能的正确性进行测试；而健壮性和性能测试主要关注于本系统在扫描各类被测应用时的程序不崩溃，并能在合理时间内返回数据。
 
 在功能测试中，主要对第~\ref{sec:demand} 节提出的需求和用例进行测试，对污点分析、程序切片、预处理和误报预测各个模块的生成测试用例并对其进行测试。在健壮性测试中，主要对系统输入各类 Jar 包，检查系统是否能否在规定时间内产生扫描报告。
 
-表~\ref{tab:testenv}为测试的软硬件环境，在硬件方面，由于扫描任务是计算密集型任务，所以客户端选择了 CPU 较高配置的 E5-2630 和内存为 32G，并将 JVM 参数调整为“-Xmx8g -Xss500m”，服务端的硬件配置与客户端相同，软件上有Pytorch、Django、Celery、MySQL和Redis。
+表~\ref{tab:testenv}为测试的软硬件环境，在硬件方面，由于扫描任务是计算密集型任务，所以客户端选择了 CPU 较高配置的 E5-2630 和内存为 32G，并将 JVM 参数调整为“-Xmx8g -Xss500m”，服务端的硬件配置与客户端相同，软件上有 Pytorch、Django、Celery、MySQL、Redis 等。
 
 \begin{table}[!htbp]\footnotesize
     \centering
@@ -476,7 +478,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{testcase:taint}
 \end{table}
 
-在程序切片模块，主要有一个测试套件TS3，即测试系统能否成功将污点分析项目转化为切片项目，在切片项目中，存在污点传播树和其对应的污染流，每个污点传播对应一条切片。该测试套件对应的测试用例如表~\ref{testcase:slice} 所示，其主要包含有 TC3-1，对上一模块产生的分析结果进行处理，从报告中还原污点传播树；TC3-2，拆解污点污点传播树，将一颗传播树拆解为子污染流的集合；TC3-3，对一个污染流进行后向切片，由于 Joana 自身存在 bug，当切片成功时，程序返回切片文本，在切片失败时扫描任务不崩溃，并返回错误原因。经过测试，以上测试用例输出均与预期相符，测试全部通过。
+在程序切片模块，主要有一个测试套件TS3，即测试系统能否成功将污点分析项目转化为切片项目，在切片项目中，存在污点传播树和其对应的污染流，每个污点传播对应一条切片。该测试套件对应的测试用例如表~\ref{testcase:slice} 所示，其主要包含有 TC3-1，对上一模块产生的分析结果进行处理，从报告中还原污点传播树；TC3-2，拆解污点污点传播树，将传播树拆解为子污染流的集合；TC3-3，对一个污染流进行后向切片，由于 Joana 自身存在一定不稳定，当切片成功时，程序返回切片文本，在切片失败时扫描任务不崩溃，并返回错误原因。经过测试，以上测试用例输出均与预期相符，测试全部通过。
 
 \begin{table}[!htb]\footnotesize
     \centering
@@ -494,7 +496,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{testcase:slice}
 \end{table}
 
-数据预处理模块的测试套件为 TS4，其用于测试改模快是否能对于一个切片文本进行泛化和向量化处理。其包含的测试用例如表~\ref{testcase:preprocessing} 所示，TC4-1 用于测试预处理模块能否对于一个切片文本进行有效泛化处理，对其输出单词序列；TC4-2 用于测试模块对于单词序列集合，能否将其转化为向量集合和对应的单词表，在输入时，单词表为可选项，若不存在单词表则新建，存在则根据已有单词表进行向量生成。经过测试，以上测试用例输出均与预期相符，测试全部通过。
+数据预处理模块的测试套件为 TS4，其用于测试模快是否能对于一个切片文本进行正确泛化和向量化处理。其包含的测试用例如表~\ref{testcase:preprocessing} 所示，TC4-1 用于测试预处理模块能否对于一个切片文本进行有效泛化处理，对其输出单词序列；TC4-2 用于测试模块对于单词序列集合，能否将其转化为向 量集合和对应的单词表，在输入时，单词表为可选项，若不存在单词表则新建，存在则根据已有单词表进行向量生成。经过测试，以上测试用例输出均与预期相符，测试全部通过。
 
 \begin{table}[!htb]\footnotesize
     \centering
@@ -511,7 +513,11 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{testcase:preprocessing}
 \end{table}
 
-误报预测模块的测试套件有 TS5，对漏洞实例安全性进行预测；TS6，对漏洞实例安全性进行标记；TS7，对已有新数据进行模型训练。它们对应的测试用例如表~\ref{testcase:predict} 所示，安全性实例预测套件对应的测试用例有 TC5-1，对切片文本进行安全性预测，由于切片文本与污染流成一一对应关系，切片文本安全即污染流安全，测试检查系统是否能返回预测结果，并同时将污染流保存到文件系统和数据库中；TC5-2，对一个漏洞实例进行误报预测，测试给定任意漏洞实例和对应传播树的集合，系统能否返回漏洞是否为误报。安全性标记对应的测试用例有 TC6-1，标记污染流安全性，对于单个污染流标记其是否安全，系统需要将该标记数据存储至数据库和文件系统中，更新预测结果；TC6-2，标记可利用的传播树，系统需要将其对应的所有污染流标记为不安全，其对应的漏洞也应标记为不安全。模型训练对应的测试用例有 TC7-1，用户在后台新建训练配置，系统将其配置保存至数据库；TC7-2，用户发起训练请求，系统异步完成请求，并将训练好的模型保存至数据库和文件系统。经过测试，以上测试用例输出均与预期相符，测试全部通过。 
+误报预测模块的测试套件为 TS5；TS6，对漏洞实例安全性进行标记；TS7，对已有新数据进行模型训练。它们对应的测试用例如表~\ref{testcase:predict} 所示，安全性实例预测套件对应的测试用例有 TC5-1，对切片文本进行安全性预测，由于切片文本与污染流成一一对应关系，切片文本安全即污染流安全，测试检查系统是否能返回预测结果，并同时将污染流保存到文件系统和数据库中；TC5-2，对一个漏洞实例进行误报预测，测试给定任意漏洞实例和对应传播树的集合，系统能否返回漏洞是否为误报。
+
+安全性标记对应的测试套件为 TS6，测试用例有 TC6-1，标记污染流安全性，对于单个污染流标记其是否安全，系统需要将该标记数据存储至数据库和文件系统中，更新预测结果；TC6-2，标记可利用的传播树，系统需要将其对应的所有污染流标记为不安全，当漏洞的所有污染传播树无法传播污点时，对漏洞也应标记为不安全。
+
+模型训练的测试套件为 TS7，对应的测试用例有 TC7-1，用户在后台新建训练配置，系统将其配置保存至数据库；TC7-2，用户发起训练请求，系统异步完成请求，并将训练好的模型保存至数据库和文件系统。经过测试，以上测试用例输出均与预期相符，测试全部通过。 
 
 \begin{table}[!htb]\footnotesize
     \centering
@@ -534,7 +540,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 
 \subsection{健壮性和性能测试}
 
-为了测试本系统的健壮性和性能，本文选择 Maven 中央仓库流行度 Top 100 的项目，在每个项目选择使用最多的构建版本作为测试对象~\footnote{\url{https://mvnrepository.com/popular?p=1}，抓取时间为 2019年10月24日，当前流行度榜单可能已经发生变化} 批量建立扫描任务进行测试，表~\ref{robustTest} 列出了测试结果，对于一个项目，本文将系统的最大扫描时间设为 4 小时，如果超过该时间系统仍未返回结果，则认为系统扫描失败。
+为了测试本系统的健壮性和性能，本文选择 Maven 中央仓库流行度 Top 100 的项目，在每个项目选择使用最多的构建版本作为测试对象~\footnote{\url{https://mvnrepository.com/popular?p=1}，抓取时间为 2019年10月24日，当前流行度榜单可能已经发生变化} 批量建立扫描任务进行测试，对于一个项目，本文将系统的最大扫描时间设为 4 小时，如果超过该时间系统仍未返回结果，则认为系统扫描失败，表~\ref{robustTest} 列出了测试结果。
 
 \begin{table}[!htb]\footnotesize
     \centering
@@ -550,25 +556,16 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{robustTest}
 \end{table}
 
-其中有 4 个构建为 aar 格式，由于系统只能输入 Jar 格式，因此实际参与测试的文件为 96 个 Jar 包文件，在 96 个 Jar 文件中，有 14 个Jar 文件内无 “.class”文件，系统均在能启动扫描时检测并提示用户 Jar 包不合法，并正常退出。对于剩下的 82 个文件，系统在限定时间内返回扫描结果，即扫描成功率为 100\%，至此本文认为该系统具有较高的健壮性。
+其中有 4 个构建为 aar 格式，由于系统只能输入 Jar 格式，因此它们无法参与测试，即实际参与测试的文件为 96 个 Jar 包文件，在 96 个 Jar 文件中，有 14 个Jar 文件内无 “.class”文件，系统均在能启动扫描时检测并提示用户 Jar 包不合法，并正常退出。对于剩下的 82 个文件，系统在限定时间内返回扫描结果，即扫描成功率为 100\%，至此本文认为该系统具有较高的健壮性。
 
-在系统性能方面，可以看出对于测试的 Jar 包，系统最短扫描时间仅有 7.21s，对应的 Jar 包为 support-annotations-27.1.1.jar~\footnote{\url{https://mvnrepository.com/artifact/com.android.support/support-annotations/27.1.1}}，这一类包的特点在于其本身项目较小，项目中与安全有关的函数（Sink 点）调用也相对较少，因此其分析时间也较短；平均扫描时间为 67.22s，这也意味着对于绝大多数的 Jar 包，开发者在一分钟左右即可收到扫描结果；系统最长扫描时间为 1815.24s，对应的 Jar 包为 groovy-all-2.4.7.jar ~\footnote{\url{https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all/2.4.7}}，该包为 Groovy 语言的解释器，因此代码中会出现大量的安全相关函数和入口点，因此分析时间较长，但是系统仍能在一个小时之内给出扫描报告，对于大型项目而言，本文认为这是合理的。
+在系统性能方面，可以看出对于测试的 Jar 包，系统最短扫描时间仅有 7.21s，对应的 Jar 包为 support-annotations-27.1.1.jar~\footnote{\url{https://mvnrepository.com/artifact/com.android.support/support-annotations/27.1.1}}，这一类包的特点在于其本身项目较小，项目中与安全有关的函数（Sink 点）调用也相对较少，因此其分析时间也较短；平均扫描时间为 67.22s，这也意味着对于绝大多数的 Jar 包，开发者在一分钟左右即可收到扫描结果；系统最长扫描时间为 1815.24s，对应的 Jar 包为 groovy-all-2.4.7.jar ~\footnote{\url{https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all/2.4.7}}，该包为 Groovy 语言的解释器，因此代码中会出现大量的安全相关函数和入口点，因此分析时间较长，但是系统仍能在一个小时之内给出扫描报告，对于大型项目而言，本文认为这是可以被开发者接受的。
 
-本系统对于各类 Jar 包有较高的健壮性，并且能较为及时的完成扫描任务，在保证代码安全同时不会影响代码开发进度。\\
+综上，本系统对于各类 Jar 包有较高的健壮性，并且能较为及时的完成扫描任务，在保证代码安全同时不会影响代码开发进度。\\
 
 \subsection{系统效果评估}
 
 \subsubsection{研究性问题}
-相对于传统污点分析系统，本系统主要采取神经网络预测降低污点分析报告误报来提升准确性，在本小节，将从两个研究性问题入手，证明本系统相较于传统安全分析工具的优势：
-
-\begin{itemize}
-    \itemindent 2.8em
-    \item[\textbf{RQ1:}] 与目前流行的污点分析系统相比，本系统是否能有效降低误报？
-    \item[\textbf{RQ2:}] 对于本系统中预测的基本单位——污染流，本系统模型是否有较高的准确性？
-\end{itemize}
-
-\textbf{RQ1} 直接回答了用户最关键的问题，因为本系统的主要目标即降低误报提高准确性。
-\textbf{RQ2} 更进一步的解释了系统能够取得较高提升的原因，因为系统的预测模型实际是对污染流对应的切片进行切片，其污染流的预测准确性直接影响了误报预测的准确性。\\
+相对于传统污点分析系统，本系统主要采取神经网络预测降低污点分析报告误报来提升准确性，在本小节，将通过实验证明本系统相较于传统安全分析工具的优势，即：与目前流行的污点分析系统相比，本系统是否能有效降低误报？
 
 \subsubsection{参数设置}
 本系统的 BLSTM 预测模型在训练和构造时存在一系列参数，系统上线前本文对已有数据集进行了测试，在权衡准确性和效率后，系统选择的参数配置如下：词嵌入维度（embedding\_dim）为 16；隐藏层神经元个数为 32；最小词频为 4；批处理记录数为32；基础学习率为 0.01；提前停止忍耐度为3；最大迭代次数为20。\\
@@ -589,14 +586,10 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \label{tab:confusionMatrix}%
 \end{table}
 
-在 \textbf{RQ1} 中，本文将本系统与目前流行的 Find Security Bugs 扫描报告做对比，将数据集的 90\% 作为训练集，10\% 作为测试集（对于 Find Security Bugs 而言，其没有训练过程，只对测试集用例进行扫描）再根据两系统的扫描报告，以准确率（Accuracy）、精确率（Precision）、找回率（Recall）和 $F_{1}$ 作为度量比较系统准确性，为了解释这些度量计算方法，首先介绍对于扫描报告的混淆矩阵，如表~\ref{tab:confusionMatrix} 所示，对于每一个测试用例，扫描结果会对其报告为存在漏洞和不存在漏洞，因此产生实际为漏洞且扫描结果为漏洞的用例数 TP，实际为漏洞且扫描结果为无漏洞的用例数 FN （漏报数），实际无漏洞且扫描结果为有漏洞的用例数 FP（误报数）和实际无漏洞且扫描结果为无漏洞的用例数 TN，在此基础上，报告的准确率计算方式为 $Accuracy=\frac{TP+TN}{TP+FN+FP+FN}$、漏洞精确率为 $Precision=\frac{TP}{TP+FP}$、漏洞召回率为 $Recall=\frac{TP}{TP+FN}$ 以及 $F_1$ 计算方式为 $F_{1}=\frac{2 \cdot Precision \cdot Recall}{Precision+Recall}$。
-
-在 \textbf{RQ2} 中，首先使用污点分析和切片模块得到污染流切片，再根据数据集标签对污染流进行标记，并使用预处理和预测模块对其进行训练，最后通过预测结果的混淆矩阵评估预测效果。
-
-不论在 \textbf{RQ1} 还是 \textbf{RQ2} 中，本文每次实验重复三次取平均值作为最终结果。
+本文将本系统与目前流行的 Find Security Bugs 扫描报告做对比，将数据集的 90\% 作为训练集，10\% 作为测试集（对于 Find Security Bugs 而言，其没有训练过程，只对测试集用例进行扫描）再根据两系统的扫描报告，以准确率（Accuracy）、精确率（Precision）、找回率（Recall）和 $F_{1}$ 作为度量比较系统准确性，为了解释这些度量计算方法，首先介绍对于扫描报告的混淆矩阵，如表~\ref{tab:confusionMatrix} 所示，对于每一个测试用例，扫描结果会对其报告为存在漏洞和不存在漏洞，因此产生实际为漏洞且扫描结果为漏洞的用例数 TP，实际为漏洞而扫描结果为无漏洞的用例数 FN （漏报数），实际无漏洞而扫描结果为有漏洞的用例数 FP（误报数）和实际无漏洞且扫描结果为无漏洞的用例数 TN，在此基础上，报告的准确率计算方式为 $Accuracy=\frac{TP+TN}{TP+FN+FP+FN}$、漏洞精确率为 $Precision=\frac{TP}{TP+FP}$、漏洞召回率为 $Recall=\frac{TP}{TP+FN}$ 以及 $F_1$ 计算方式为 $F_{1}=\frac{2 \cdot Precision \cdot Recall}{Precision+Recall}$，每次实验重复三次取平均值作为最终结果。
 
 \subsubsection{评估数据集}
-本文使用 OWASP Benchmark v1.1~\footnote{https://www.owasp.org/index.php/Benchmark} （ 简称 OWASP）和 Juliet Test Suite for Java v1.3~\footnote{https://samate.nist.gov/SARD/testsuite.php} （ 简称 Juliet）作为数据集，由于 Juliet 数据集存在大量多个入口点共用一个汇聚点的漏洞情况，导致大部分漏洞均为正报（因为只要漏洞实例中任意一棵传播树是不安全的，那么漏洞就是真实存在的），从而无法在 RQ1 中使用，其将在 RQ2 和真实系统上线时，作为切片训练集使用，表~\ref{tab:dataset} 中显示了各个数据集中的数据量大小。
+本文使用 OWASP Benchmark v1.1~\footnote{\url{https://www.owasp.org/index.php/Benchmark}} （ 简称 OWASP）和 Juliet Test Suite for Java v1.3~\footnote{\url{https://samate.nist.gov/SARD/testsuite.php}} （ 简称 Juliet）作为数据集，由于 Juliet 数据集存在大量多个入口点共用一个汇聚点的漏洞情况，导致大部分漏洞均为正报（因为只要漏洞实例中任意一棵传播树是不安全的，那么漏洞就是真实存在的），从而无法在 RQ1 中使用，其将在 RQ2 和真实系统上线时，作为切片训练集使用，表~\ref{tab:dataset} 中显示了各个数据集中的数据量大小。
 
 \begin{table}[htbp]\footnotesize
     \centering
@@ -659,9 +652,7 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
 
 \subsection{系统运行展示}
 
-本系统为 C/S 架构的安全扫描系统，这里主要展示污点分析结果界面，设置预测服务器界面，预测结果展示、标记正报界面（漏洞可利用）和标记误报界面（漏洞不可利用）任务界面。为了真实展示程序运行结果，本小节使用前文的 OWASP benchmark v1.1 和 Juliet Test Suite for Java v1.3 的全量数据进行训练得到预测模型，使用 Java Sec Code 项目~\footnote{\url{https://github.com/JoyChou93/java-sec-code}} 作为被测项目，该项目是一个模拟真实 Java 漏洞和修复方案的代码合集，目前已有 500 多个 Star。
-
-图~\ref{show:taint} 展示了系统污点分析结果界面，该界面主要沿用了 Spotbugs 界面，在菜单栏可以新建，读取，保存扫描项目，对 UI 进行调整以及进行预测。左上方窗口显示了按类型整理的漏洞实例，由于用户还未对漏洞进行预测和标记，因此每个叶子节点的开头显示为“[P:UNK][L:ULB]”，左下方显示了一个漏洞实例的污点传播树——这是本系统的主要改进之处，右上方为对应的程序代码，右下方为关于该漏洞的解释信息。
+本系统为 C/S 架构的安全扫描系统，这里主要展示污点分析结果界面，设置预测服务器界面，预测结果界面、标记正报界面（漏洞可利用）和标记误报界面（漏洞不可利用）任务界面。为了真实展示程序运行结果，本小节使用前文的 OWASP benchmark v1.1 和 Juliet Test Suite for Java v1.3 的全量数据进行训练得到预测模型，使用 Java Sec Code 项目~\footnote{\url{https://github.com/JoyChou93/java-sec-code}} 作为被测项目，该项目是一个模拟真实 Java 漏洞和修复方案的代码合集，目前已有 500 多个 Star。
 
 % 污点分析结果
 \begin{figure}[H]
@@ -669,6 +660,8 @@ Pytorch 的 DataLoader 对象运行设定一个校对函数 \textit{collate\_fn(
     \includegraphics[width=0.8\linewidth]{FIGs/chapter4/taintAnalysis.png}
     \caption{污点分析结果界面}\label{show:taint}
 \end{figure} 
+
+图~\ref{show:taint} 展示了系统污点分析结果界面，该界面主要沿用了 Spotbugs 界面，在菜单栏可以新建，读取，保存扫描项目，对 UI 进行调整以及进行预测。左上方窗口显示了按类型整理的漏洞实例，由于用户还未对漏洞进行预测和标记，因此每个叶子节点的开头显示为“[P:UNK][L:ULB]”，左下方显示了一个漏洞实例的污点传播树——这是本系统的主要改进之处，右上方为对应的程序代码，右下方为关于该漏洞的解释信息。
 
 图~\ref{show:settingServer} 展示了设置预测服务器的界面，点击上方菜单栏“AI”中的“Setting Remote Server”将会出现该界面，设置预测服务器是进行误报预测的首要步骤，在设置服务器窗口中，用户需要指定服务器的 URL 地址和管理员发放的 token。
 
