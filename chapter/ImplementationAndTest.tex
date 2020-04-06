@@ -651,7 +651,7 @@ Pytorch 的 DataLoader 对象可手动指定校对函数 \textit{collate\_fn()}�
 
 \subsection{系统运行展示}
 
-本系统为 C/S 架构的安全扫描系统，这里主要展示污点分析结果界面，设置预测服务器界面，预测结果界面、标记正报界面（漏洞可利用）和标记误报界面（漏洞不可利用）任务界面。为了真实展示程序运行结果，本小节使用前文的 OWASP benchmark v1.1 和 Juliet Test Suite for Java v1.3 的全量数据进行训练得到预测模型，使用 Java Sec Code 项目~\footnote{\url{https://github.com/JoyChou93/java-sec-code}} 作为被测项目，该项目是一个模拟真实 Java 漏洞和修复方案的代码合集，目前已有 500 多个 Star。
+本系统为 C/S 架构的安全扫描系统，这里主要展示污点分析结果界面，设置预测服务器界面，预测结果界面、标记正报界面（漏洞可利用）和标记误报界面（漏洞不可利用）任务界面。为了真实展示程序运行结果，本小节系统除了使用前文的 OWASP benchmark v1.1 数据外，还使用了部分 Juliet Test Suite for Java v1.3~\footnote{\url{https://samate.nist.gov/SARD/testsuite.php}} 的数据进行训练得到预测模型，并使用 Java Sec Code 项目~\footnote{\url{https://github.com/JoyChou93/java-sec-code}} 作为被测项目，该项目是一个模拟真实 Java 漏洞和修复方案的代码合集，目前已有 500 多个 Star。
 
 % 污点分析结果
 \begin{figure}[H]
