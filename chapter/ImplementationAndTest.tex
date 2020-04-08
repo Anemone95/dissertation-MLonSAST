@@ -16,7 +16,7 @@
 \caption{记录污点传播信息算法实现}
 \label{alg:noteTaint}
 \KwIn{$method$，函数上下文信息 }
-\KwOut{$R$, 返回语句位置集合；$I$, 函数调用指令位置集合；$T$, 于污点传播相关函数调用指令集合}
+\KwOut{$R$, 返回语句位置集合；$I$, 函数调用指令位置集合；$T$, 与污点传播相关函数调用指令集合}
 $mDesc \leftarrow getDesc(method)$\\
 $R \leftarrow \varnothing $\\
 $I \leftarrow \varnothing $\\
@@ -69,7 +69,7 @@ $dataflow \leftarrow getDataflow(method)$;\\
 
 \subsection{构造污点传播树并生成注解的实现}
 
-在得到污点传播图后，对图的每一入口进行深度优先搜索，得到污点传播树集合，搜索算法~\ref{alg:buildTaintTree}所示，算法实现于 \textit{TaintTreeGenerator.makeTree()} 函数中。\\
+在得到污点传播图后，对图的每一入口进行深度优先搜索，得到污点传播树集合，搜索算法~\ref{alg:buildTaintTree}所示，算法实现于 \textit{TaintTreeGenerator.makeTree()} 函数中。
 
 \begin{algorithm}[!htb]\footnotesize
     \caption{构造污点传播树伪代码实现}
@@ -132,7 +132,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 
 真实情况下，一个程序中可能存在大量 if-else 语句，可能会导致路径爆炸的问题，因此系统在这里对算法进行了限制，当入口函数的传播树个数大于 300 时，将不再获取子传播树集合，而是直接获取一棵可行的传播树。
 
-得到污点传播树后，对传播树再做一次深度搜索可以将书上的所有节点转化为可以显示在界面上的注解，其算法表示如 算法~\ref{alg:buildAnnotation} 所示。
+得到污点传播树后，对传播树再做一次深度搜索可以将树上的所有节点转化为可以显示在界面上的注解，其算法表示如 算法~\ref{alg:buildAnnotation} 所示。
 
 \begin{algorithm}[!htb]\footnotesize
     \caption{构造污点传播树注解伪代码实现}
@@ -159,7 +159,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 对于污点传播图的每一个入口函数，可以构造一至多棵污点传播树，对应的就有一至多组注解集合。
 
 \section{程序切片模块的实现}
-在设计章节，本文已经对该模块的功能，主要流程和重要类图进行了介绍，在本节中，将从整个流程的控制模块和后向切片两方面介绍该模块的具体实现。\\
+在设计章节，本文已经对该模块的功能、主要流程和重要类图进行了介绍，在本节中，将从整个流程的控制模块和后向切片两方面介绍该模块的具体实现。\\
 
 \subsection{切片控制模块实现}
 
@@ -261,9 +261,9 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
     \caption{生成 SDG 的配置类图}\label{JoanaConfig}
 \end{figure}
 
-为 Joana 打印日志，有 JoanaOutputStream 类，其继承 Java 原生的 OutputStream， \textit{write()} 函数用来向控制台打印日志信息，其实例保存于配置的 out 属性中。
+为 Joana 打印日志，有 JoanaOutputStream 类，其继承 Java 原生的 OutputStream 类， \textit{write()} 函数用来向控制台打印日志信息，其实例保存于配置的 out 属性中。
 
-SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于解决异形 Jar 包找不到类的问题，例如，Springboot 的项目 Jar 包中，类文件的地址前缀为 “$BOOT-INF/classes/\langle package \rangle.\langle class \rangle.class $”，对于 Joana 切片来说，其首先通过 ClassHierarchyFactory 工厂类获取类层次图（IClassHierarchy），类层次图中包含了切片器能够分析的所有类，构造类的层次图首先会扫描 Jar 包中的所有 .class 文件作为类文件，并将其目录作为包名和类名，如：从“a/b/XSS.class”得到类“a.b.XSS”，工厂类中函数 \textit{makeWithRoot()} 和 \textit{make()} 都是构建调用图的函数，区别在于 \textit{makeWithRoot()} 支持缺失依赖的层次图生成，这将在后文详细介绍，它们的第一个参数是分析范围，该对象可以通过传入的 Jar 包路径创建，而第二个参数为 Jar 包的类加载器工厂类（ClassLoaderFactory），注意这里的类加载器不等同于 Java 原生的 Classloader。类加载器 IClassLoader 为一接口，其中定义了 \textit{iterateAllClasses()} 方法用于遍历分析范围类的所有类，首先为了解决类查找问题，需要在遍历时获取这些 Jar 包的正确类名，即重写 ClassLoader 并建立对应的工厂类。Joana 默认的（准确的说是 Joana 借助 WALA 的）类加载器为 ClassLoaderImpl，其 \textit{init()} 方法通过 \textit{loadAllClasses()} 将 Jar 中的所有类读取至缓存，当调用 \textit{iterateAllClasses()} 时，只需遍历缓存中的类即可，因此本模块的 SliceWalaClassLoader 继承了 ClassLoaderImpl 并重写了 \textit{loadAllClasses()} 方法，其实现如代码~\ref{code:sliceWalaClassLoader} 所示，可以看到代码第 9-10 行，当包名中存在“/classes/”目录时，去除“/classes/”及前部分字符，只留下包名和类名。
+SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于解决异形 Jar 包找不到类的问题，例如，Springboot 的项目 Jar 包中，类文件的地址前缀为 “BOOT-INF/classes/$\langle$package$\rangle$.$\langle$class$\rangle$.class”，对于 Joana 切片来说，其首先通过 ClassHierarchyFactory 工厂类获取类层次图（IClassHierarchy），类层次图中包含了切片器能够分析的所有类，构造类的层次图首先会扫描 Jar 包中的所有 .class 文件作为类文件，并将其目录作为包名和类名，如：从“a/b/XSS.class”得到类“a.b.XSS”，工厂类中函数 \textit{makeWithRoot()} 和 \textit{make()} 都是构建调用图的函数，区别在于 \textit{makeWithRoot()} 支持缺失依赖的层次图生成，这将在后文详细介绍，它们的第一个参数是分析范围，该对象可以通过传入的 Jar 包路径创建，而第二个参数为 Jar 包的类加载器工厂类（ClassLoaderFactory），注意这里的类加载器不等同于 Java 原生的 Classloader。类加载器 IClassLoader 为一接口，其中定义了 \textit{iterateAllClasses()} 方法用于遍历分析范围类的所有类，首先为了解决类查找问题，需要在遍历时获取这些 Jar 包的正确类名，即重写 ClassLoader 并建立对应的工厂类。Joana 默认的（准确的说是 Joana 借助 WALA 的）类加载器为 ClassLoaderImpl，其 \textit{init()} 方法通过 \textit{loadAllClasses()} 将 Jar 中的所有类读取至缓存，当调用 \textit{iterateAllClasses()} 时，只需遍历缓存中的类即可，因此本模块的 SliceWalaClassLoader 继承了 ClassLoaderImpl 并重写了 \textit{loadAllClasses()} 方法，其实现如代码~\ref{code:sliceWalaClassLoader} 所示，可以看到代码第 9-10 行，当包名中存在“/classes/”目录时，去除“/classes/”及前部分字符，只留下包名和类名。
 
 接着模块需要解决类实际加载的问题，模块通过自定义 Java 原生 ClassLoader（SliceJavaClassLoader）解决该问题，该类实现代码如代码~\ref{code:sliceJavaClassLoader} 所示，其关键在于代码第 9 行，即通过字符串尾部匹配来判断 classpath 下是否包含文件，如果包含则读取该类的内容至比特数组 classByte 中。 
 
@@ -320,7 +320,7 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
 
 由于切片对象为静态单赋值形式（SSA），以“v\{数字\}”表示的变量在切片中很常见，但是由于切片原因，这些数字并不是自然增长的，因此在泛化流程中，对其出现顺序进行映射，将其泛化为“VAR V\{i\}”的形式，其中 i 代表该变量是第 i 个出现在切片中的，例如第 2 行、第 3 行和第 4 行出现的 v6 变量，将其泛化为“VAR V1”，即该变量第 1 个出现在切片中。
 
-函数调用的泛化主要是针对于调用切片和返回，对于调用切片，如第 2 行，将其调用函数前的“.”去除，若有形参（“\$”开头的变量）也将其去除，因为形参名称与漏洞本身无关，并在括号前后加空格，当做完经过该步骤后，第 2 行切片的函数调用部分泛化为“VAR V1 = p1 equals ( STR S1 ) ”，若函数调用返回为对象，则将其下划线形式改为“.”连接的形式，如最后一行中的“Ljava/lang/String”变为“java.lang.String”。
+函数调用的泛化主要是针对于调用切片和返回，对于调用切片，如第 2 行，将其调用函数前的“.”去除，若有形参（“\$”开头的变量）也将其去除，因为形参名称与漏洞本身无关，并在括号前后加空格，当做完经过该步骤后，第 2 行切片的函数调用部分泛化为“VAR V1 = p1 equals ( STR S1 ) ”，若函数调用返回为对象，则将其斜杠形式改为“.”连接的形式，如最后一行中的“Ljava/lang/String”变为“java.lang.String”。
 
 泛化包名方法名，此类泛化主要对于 ENTER 类型的节点，如第 1 行，这里需要将切片拆分为“包名\_方法名\_函数参数类型”，如将“demo.XSS.unsafe(java.la-\\ng.String)”泛化为“demo XSS unsafe ( java.lang.String )”。\\
 
@@ -346,7 +346,7 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
     \lstinputlisting[language=Java, caption={误报预测控制逻辑的实现}, label={code:predictRunner}]{FIGs/chapter4/predictRunner.java}
 \end{minipage}
 
-代码遍历 sliceProject 中的每一个实例、每个实例中的每个污点传播树以及每个传播树中的污染流，从代码 20$\sim$23 行可以看出，只要树中有一条污染流是安全的，那么整个传播树就是安全的，因为污点无法向下传播至汇聚点，对应的安全流会保存到 safeFlows 集合中。从第 27 行可以看到，只有当所有的污点传播树都是安全时，一个漏洞实例才可判断为误报，最后，将是否为误报的结果和安全的流放入预测项目中作为证明放入项目中。\textit{flowIsSafe()} 在调用远程预测服务前，会先检查缓存是否已有记录，若存在记录则直接将其返回，否则调用远程服务。\\
+代码遍历 sliceProject 中的每一个实例、每个实例中的每个污点传播树以及每个传播树中的污染流，从代码 20$\sim$23 行可以看出，只要树中有一条污染流是安全的，那么整个传播树就是安全的，因为污点无法向下传播至汇聚点，对应的安全流会保存到 safeFlows 集合中。从第 27 行可以看到，只有当所有的污点传播树都是安全时，一个漏洞实例才可判断为误报，最后，将是否为误报的结果和安全的流放入预测项目中。\textit{flowIsSafe()} 在调用远程预测服务前，会先检查缓存是否已有记录，若存在记录则直接将其返回，否则调用远程服务。\\
 
 \subsection{误报预测时序图}
 误报预测模块存在客户端至服务器调用流程，本文通过时序图~\ref{predictTime} 说明误报预测的调用实现。
@@ -448,8 +448,8 @@ Pytorch 的 DataLoader 对象可手动指定校对函数 \textit{collate\_fn()}�
         \toprule
         \textbf{ID} & \textbf{所在模块} &\textbf{测试功能} &\textbf{测试内容}\\
         \midrule
-        TS1 & 污点分析模块 & 基于污点分析的静态扫描  & 提交扫描任务，系统能够将污点分析结果显示在用户界面。\\
-        TS2 & 污点分析模块  & 污点分析结果的存取 & 对于一个污点分析结果，系统可以将其保存，并在打开时导入。\\
+        TS1 & 污点分析模块 & 基于污点分析的静态扫描  & 提交扫描任务，系统能够将污点分析结果显示在用户界面\\
+        TS2 & 污点分析模块  & 污点分析结果的存取 & 对于一个污点分析结果，系统可以将其保存，并在打开时导入\\
         TS3 & 程序切片模块  & 程序切片 & 对于一个污点分析项目，对每一个漏洞进行切片，生成程序切片项目\\
         TS4 & 预处理模块   & 切片泛化与向量化 & 对于一个切片文本，对其进行泛化和向量化\\
         TS5 & 误报预测模块  & 预测漏洞安全性 & 对于一个漏洞实例，利用模型预测其是否为误报\\
@@ -490,13 +490,13 @@ Pytorch 的 DataLoader 对象可手动指定校对函数 \textit{collate\_fn()}�
         \midrule
         TC3-1 & 处理污点分析结果  & 污点分析结果 & 漏洞实例及其对应传播树集合 & 通过\\
         TC3-2 & 拆解污点传播树  & 污点传播树 & 子污染流集合 & 通过\\
-        TC3-3 & 污染流后向切片  & 污染流 & 切片文本（若失败返回错误原因） & 通过\\
+        TC3-3 & 污染流后向切片  & 污染流 & 切片文本（失败返回错误原因） & 通过\\
         \bottomrule
     \end{tabular}
     \label{testcase:slice}
 \end{table}
 
-数据预处理模块的测试套件为 TS4，其用于测试模快是否能对于一个切片文本进行正确泛化和向量化处理。其包含的测试用例如表~\ref{testcase:preprocessing} 所示，TC4-1 用于测试预处理模块能否对于一个切片文本进行有效泛化处理，对其输出单词序列；TC4-2 用于测试模块对于单词序列集合，能否将其转化为向 量集合和对应的单词表，在输入时，单词表为可选项，若不存在单词表则新建，存在则根据已有单词表进行向量生成。经过测试，以上测试用例输出均与预期相符，测试全部通过。
+数据预处理模块的测试套件为 TS4，其用于测试模快是否能对于一个切片文本进行正确泛化和向量化处理。其包含的测试用例如表~\ref{testcase:preprocessing} 所示，TC4-1 用于测试预处理模块能否对于一个切片文本进行有效泛化处理，对其输出单词序列；TC4-2 用于测试模块对于单词序列集合，能否将其转化为向 量集合和对应的单词表，在输入时，单词表为可选项，若不存在单词表则新建，存在则根据已有单词表生成向量。经过测试，以上测试用例输出均与预期相符，测试全部通过。
 
 \begin{table}[!htb]\footnotesize
     \centering
@@ -586,7 +586,7 @@ Pytorch 的 DataLoader 对象可手动指定校对函数 \textit{collate\_fn()}�
     \label{tab:confusionMatrix}%
 \end{table}
 
-本文将本系统与目前流行的 Find Security Bugs 扫描报告做对比，将数据集的 90\% 作为训练集，10\% 作为测试集（对于 Find Security Bugs 而言，其没有训练过程，只对测试集用例进行扫描）再根据两系统的扫描报告，以准确率（Accuracy）、精确率（Precision）、找回率（Recall）和 $F_{1}$ 作为度量比较系统准确性，为了解释这些度量计算方法，首先介绍对于扫描报告的混淆矩阵，如表~\ref{tab:confusionMatrix} 所示，对于每一个测试用例，扫描结果会对其报告为存在漏洞和不存在漏洞，因此产生实际为漏洞且扫描结果为漏洞的用例数 TP，实际为漏洞而扫描结果为无漏洞的用例数 FN （漏报数），实际无漏洞而扫描结果为有漏洞的用例数 FP（误报数）和实际无漏洞且扫描结果为无漏洞的用例数 TN，在此基础上，报告的准确率计算方式为 $Accuracy=\frac{TP+TN}{TP+FN+FP+FN}$、漏洞精确率为 $Precision=\frac{TP}{TP+FP}$、漏洞召回率为 $Recall=\frac{TP}{TP+FN}$ 以及 $F_1$ 计算方式为 $F_{1}=\frac{2 \cdot Precision \cdot Recall}{Precision+Recall}$，每次实验重复三次取平均值作为最终结果。
+本文将本系统与目前流行的 Find Security Bugs 扫描报告做对比，将数据集的 90\% 作为训练集，10\% 作为测试集（对于 Find Security Bugs 而言，其没有训练过程，只对测试集用例进行扫描）再根据两系统的扫描报告，以准确率（Accuracy）、精确率（Precision）、召回率（Recall）和 $F_{1}$ 作为度量比较系统准确性，为了解释这些度量计算方法，首先介绍对于扫描报告的混淆矩阵，如表~\ref{tab:confusionMatrix} 所示，对于每一个测试用例，扫描结果会对其报告为存在漏洞和不存在漏洞，因此产生实际为漏洞且扫描结果为漏洞的用例数 TP，实际为漏洞而扫描结果为无漏洞的用例数 FN （漏报数），实际无漏洞而扫描结果为有漏洞的用例数 FP（误报数）和实际无漏洞且扫描结果为无漏洞的用例数 TN，在此基础上，报告的准确率计算方式为 $Accuracy=\frac{TP+TN}{TP+FN+FP+FN}$、漏洞精确率为 $Precision=\frac{TP}{TP+FP}$、漏洞召回率为 $Recall=\frac{TP}{TP+FN}$ 以及 $F_1$ 计算方式为 $F_{1}=\frac{2 \cdot Precision \cdot Recall}{Precision+Recall}$，每次实验重复三次取平均值作为最终结果。
 
 \subsubsection{评估数据集}
 本文使用 OWASP Benchmark v1.1~\footnote{\url{https://www.owasp.org/index.php/Benchmark}} （ 简称 OWASP）作为数据集，表~\ref{tab:dataset} 中显示了各个数据集中的数据量大小。
@@ -703,6 +703,7 @@ Pytorch 的 DataLoader 对象可手动指定校对函数 \textit{collate\_fn()}�
 
 标记误报时用户需要在下拉菜单中指定一条污染流，同时用户可以在下方看到关于此污染流的切片内容，对误报的标记实际是对安全的污染流标记，标记完成后系统会重新计算并更新漏洞树，用户可以多次点击标记，直至该漏洞的标记变为“[L:FP]”（标记为误报）。
 
+\section{本章小结}
 
-
+本章结合实例，阐述了基于机器学习的 Java 静态漏洞扫描系统中各个模块的具体实现，在污点分析模块中，主要介绍了在分析过程中记录污点传播信息、构造污点传播图以及构造污点传播树的实现细节，接着结合代码，介绍程序切片模块中切片控制流程和具体的后向切片器实现，在数据处理模块中，阐述泛化和向量化的具体方法，最后介绍预测模块通过预测切片进而推导漏洞是否为误报的过程。本章结尾对系统进行各个方面的测试以及运行结果的展示，通过展示说明本系统足够健壮，并且有可见的误报排除能力。
 
