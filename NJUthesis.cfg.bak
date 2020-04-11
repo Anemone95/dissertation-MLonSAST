@@ -1,0 +1,214 @@
+%%
+%% This is file `NJUthesis.cfg',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% NJUthesis.dtx  (with options: `cfg')
+%% 
+%% This is a generated file.
+%% 
+%% Copyright (C) 2010 by Wenbo Yang <http://solrex.org> and
+%% any individual authors listed elsewhere in this file.
+%% 
+%% It may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.2
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% Homepage: http://share.solrex.org/njuthesis/ or
+%%           http://njuthesis.googlecode.com/
+%% 
+\ProvidesFile{NJUthesis.cfg}
+  [2010/05/14 v0.2d NJUthesis%
+   configuration file]
+%%
+%% the setup of ctex package
+%%
+\def\CTEX@contentsname{目\NJUTspace 录}
+\def\CTEX@listfigurename{图\NJUTspace 目\NJUTspace 录}
+\def\CTEX@listtablename{表\NJUTspace 目\NJUTspace 录}
+%%
+%% labels in the National library (NLC) cover page
+%%
+\def\NJUT@nlc@label@classification{分类号}
+\def\NJUT@nlc@label@confidential{密级}
+\def\NJUT@nlc@label@UDC{UDC}
+\def\NJUT@nlc@label@title{学~位~论~文}
+\def\NJUT@nlc@label@quotetitle{（题名和副题名）}
+\def\NJUT@nlc@label@author{（作者姓名）}
+\def\NJUT@nlc@label@advisor{指导教师姓名、职务、职称、学位、单位名称及地址}
+\def\NJUT@nlc@label@degree{申请学位级别}
+\def\NJUT@nlc@label@major{专业名称}
+\def\NJUT@nlc@label@submitdate{论文提交日期}
+\def\NJUT@nlc@label@defenddate{论文答辩日期}
+\def\NJUT@nlc@label@school{学位授予单位和日期}
+\def\NJUT@nlc@label@chairman{答辩委员会主席：}
+\def\NJUT@nlc@label@reviwer{评阅人：}
+%%
+%% labels in the NJU cover page
+%%
+\def\NJUT@label@thesis{\kaishu研~~究~~生~~毕~~业~~论~~文}
+\def\NJUT@label@apply{（申请工程硕士学位）}
+\def\NJUT@label@title{\kaishu论　文　题　目}
+\def\NJUT@label@author{\kaishu作　者　姓　名}
+\def\NJUT@label@grade{2007}
+\def\NJUT@label@advisor{\kaishu指　导　教　师}
+\def\NJUT@label@degree{硕士}
+\def\NJUT@label@major{\kaishu学科、专业名称}
+\def\NJUT@label@researchfield{\kaishu研　究　方　向}
+%%
+%% labels in the backinfo page
+%%
+\def\NJUT@back@label@advisor{指~~~导~~~教~~~师}
+\def\NJUT@back@label@studentnum{学　　　　号}
+\def\NJUT@back@label@defenddate{\NJUT@nlc@label@defenddate}
+\def\NJUT@back@label@sign{\kaishu　　　　		（签字）}
+%%
+%% labels in the Chinese title page
+%%
+\def\NJUT@label@chinesetitle{\kaishu南京大学硕士学位论文}
+\def\NJUT@label@chineseapplier{\kaishu申~~请~~人}
+\def\NJUT@label@chinesestudentno{\kaishu学~~~~~~~~号}
+\def\NJUT@label@chinesemajor{\kaishu专~~~~~~~~业}
+\def\NJUT@label@chineseresearchfield{\kaishu研究方向}
+\def\NJUT@label@chineseadvisor{\kaishu指导教师}
+%%
+%% labels in the english title page
+%%
+\def\NJUT@label@englishadvisor{Supervised by}
+\def\NJUT@label@englishstatement{A Thesis\\Submitted to the Software Institute\\and the Graduate School \\ of Nanjing University \\ in Partial Fulfillment of the Requirements \\ for the Degree of\\}
+\def\NJUT@label@englishstatementReview{A Thesis\\Submitted to the XXX Department\\and the Graduate School \\ of XXX University \\ in Partial Fulfillment of the Requirements \\ for the Degree of\\}
+%%
+%% string values filled in the english title page
+%%
+\def\NJUT@value@englishtitle{(English Title of Thesis)}
+\def\NJUT@value@englishauthor{(Author Name)}
+\def\NJUT@value@englishadvisor{(Supervisor's position)}
+\def\NJUT@value@englishadvisorname{(Supervisor's Name)}
+\def\NJUT@value@englishinstitute{(Institute Name)}
+\def\NJUT@value@englishdate{%
+  \ifcase\month\or
+    January\or February\or March\or April\or May\or June\or
+    July\or August\or September\or October\or November\or December\fi
+  , \number\year}
+\def\NJUT@value@englishdegree{Ph.D.}
+\def\NJUT@value@englishmajor{}
+%%
+%% string values filled only in the National library (NLC) cover page
+%%
+\def\NJUT@nlc@value@classification{}
+\def\NJUT@nlc@value@confidential{}
+\def\NJUT@nlc@value@UDC{}
+\def\NJUT@nlc@value@titlelinea{}
+\def\NJUT@nlc@value@titlelineb{}
+\def\NJUT@nlc@value@titlelinec{}
+\def\NJUT@nlc@value@advisorinfo{}
+\def\NJUT@nlc@value@chairman{}
+\def\NJUT@nlc@value@reviewera{}
+\def\NJUT@nlc@value@reviewerb{}
+\def\NJUT@nlc@value@reviewerc{}
+\def\NJUT@nlc@value@reviewerd{}
+\def\NJUT@nlc@value@footdate{　　年　月　日}
+%%
+%% string values filled in the NJU cover page
+%%
+\def\NJUT@value@school{南京大学}
+\ifNJUT@phd
+  \def\NJUT@value@degree{博士}
+\else \ifNJUT@master
+    \def\NJUT@value@degree{硕士}
+    \fi
+\fi
+\def\NJUT@value@title{论文题目}
+\def\NJUT@value@titlemark{\NJUT@value@title}
+\def\NJUT@value@author{}
+\def\NJUT@value@advisor{}
+\def\NJUT@value@major{}
+\def\NJUT@value@researchfield{研究方向}
+\def\NJUT@value@submitdate{}
+\def\NJUT@value@defenddate{}
+\def\NJUT@value@institution{南京大学计算机软件研究所}
+\def\NJUT@value@footdate{}
+%%
+%% labels in the abstract page
+%%
+\def\NJUT@abs@label@bar{南京大学研究生毕业论文中文摘要首页用纸}
+\def\NJUT@abs@label@barReview{研究生毕业论文中文摘要首页用纸}
+\def\NJUT@abs@label@englishbar{南京大学研究生毕业论文英文摘要首页用纸}
+\def\NJUT@abs@label@englishbarReview{研究生毕业论文英文摘要首页用纸}
+\def\NJUT@abs@label@title{毕业论文题目：}
+\def\NJUT@abs@label@major{专业}
+\def\NJUT@abs@label@author{级\NJUT@value@degree生姓名：}
+\def\NJUT@abs@label@advisor{指导教师（姓名、职称）：}
+\def\NJUT@abs@label@abstract{摘　要}
+\def\NJUT@abs@label@englishabstract{Abstract}
+\def\NJUT@abs@label@keywords{关键词：}
+\def\NJUT@abs@label@englishkeywords{Keywords:~}
+%%
+%% labels in the publications
+%%
+%\def\NJUT@label@publications{攻读\NJUT@value@degree学位期间完成的学术成果}
+\def\NJUT@label@publications{发表论文：}
+%%
+%% labels in the resume
+%%
+\def\NJUT@label@resume{简\NJUTspace 历}
+%%
+%% labels in the thanks
+%%
+\def\NJUT@label@thanks{致\NJUTspace 谢}
+%%
+%% the chapter title format
+%%
+\def\CTEX@chapter@nameformat{\bfseries\heiti\zihao{-3}}
+\def\CTEX@chapter@titleformat{\bfseries\heiti\zihao{-3}}
+\def\CTEX@chapter@beforeskip{15\p@}
+\def\CTEX@chapter@afterskip{12\p@}
+%%
+%% the section title format
+%%
+\def\CTEX@section@format{\bfseries\heiti\zihao{4}\centering}
+\def\CTEX@section@beforeskip{-3ex \@plus -1ex \@minus -.2ex}
+\def\CTEX@section@afterskip{1.0ex \@plus .2ex}
+%%
+%% the subsection title format
+%%
+\def\CTEX@subsection@format{\bfseries\heiti\zihao{-4}}
+\def\CTEX@subsection@indent{2\ccwd}
+\def\CTEX@subsection@beforeskip{-2.5ex \@plus -1ex \@minus -.2ex}
+\def\CTEX@subsection@afterskip{1.0ex \@plus .2ex}
+%%
+%% the subsubsection title format
+%%
+\def\CTEX@subsubsection@format{\bfseries\heiti\zihao{-4}}
+\def\CTEX@subsubsection@indent{2\ccwd}
+\def\CTEX@subsubsection@beforeskip{-2ex \@plus -1ex \@minus -.2ex}
+\def\CTEX@subsubsection@afterskip{1.0ex \@plus .2ex}
+%%
+%% the theorems definitions
+%%
+\theoremstyle{plain}
+  \newtheorem{algo}{算法~}[chapter]
+  \newtheorem{thm}{定理~}[chapter]
+  \newtheorem{lem}[thm]{引理~}
+  \newtheorem{prop}[thm]{命题~}
+  \newtheorem{cor}[thm]{推论~}
+\theoremstyle{definition}
+  \newtheorem{defn}{定义~}[chapter]
+  \newtheorem{conj}{猜想~}[chapter]
+  \newtheorem{exmp}{例~}[chapter]
+  \newtheorem{rem}{注~}
+  \newtheorem{case}{情形~}
+\theoremstyle{break}
+  \newtheorem{bthm}[thm]{定理~}
+  \newtheorem{blem}[thm]{引理~}
+  \newtheorem{bprop}[thm]{命题~}
+  \newtheorem{bcor}[thm]{推论~}
+\renewcommand{\proofname}{{\bf 证明}}
+\endinput
+%%
+%% End of file `NJUthesis.cfg'.

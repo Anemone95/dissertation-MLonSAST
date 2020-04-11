@@ -79,8 +79,8 @@
     \RequirePackage{psfrag}
     \AtBeginDvi{\special{pdf:tounicode GBK-EUC-UCS2}} % GBK -> Unicode
   \else
-  	\if\RequirePackage[dvipdfm]{hyperref} % I added
-  	\else\RequirePackage[xetex]{hyperref}   % I added
+    \if\RequirePackage[dvipdfm]{hyperref} % I added
+    \else\RequirePackage[xetex]{hyperref}   % I added
   \fi
   \DeclareGraphicsExtensions{.pdf,.eps,.ps}
 \fi
@@ -176,7 +176,7 @@
 \newcommand\englishtitle[1]{\def\NJUT@value@englishtitle{#1}}
 \newcommand\englishauthor[1]{\def\NJUT@value@englishauthor{#1}}
 \newcommand\englishadvisor[1]{\def\NJUT@value@englishadvisor{#1}}
-\newcommand\englishadvisorname[1]{\def\NJUT@value@englishadvisorname{#1}}
+%\newcommand\englishadvisorname[1]{\def\NJUT@value@englishadvisorname{#1}}
 \newcommand\englishinstitute[1]{\def\NJUT@value@englishinstitute{#1}}
 \newcommand\englishdate[1]{\def\NJUT@value@englishdate{#1}}
 \newcommand\englishaddress[1]{\def\NJUT@value@englishaddress{#1}}
@@ -186,7 +186,7 @@
 \ifNJUT@review
   \renewcommand\englishauthor[1]{}
   \renewcommand\englishadvisor[1]{}
-  \renewcommand\englishadvisorname[1]{}
+  %\renewcommand\englishadvisorname[1]{}
 \fi
 
 %%
@@ -297,9 +297,9 @@
     \vspace*{\stretch{1}}
     {\kaishu\zihao{-3}
     \noindent\begin{tabular}{rl}
-      \NJUT@back@label@studentnum &： \bf{\NJUT@value@studentnum}\\
-      \NJUT@back@label@defenddate &： \bf{\NJUT@value@defenddate}\\
-      \NJUT@back@label@advisor &： \bf{\NJUT@back@label@sign}\\
+      \NJUT@back@label@studentnum &�� \bf{\NJUT@value@studentnum}\\
+      \NJUT@back@label@defenddate &�� \bf{\NJUT@value@defenddate}\\
+      \NJUT@back@label@advisor &�� \bf{\NJUT@back@label@sign}\\
     \end{tabular}
     }
   \fi
@@ -365,7 +365,7 @@
       \normalfont\zihao{4} \NJUT@label@englishadvisor
     \vskip 1pt
       \normalfont\zihao{4} \NJUT@value@englishadvisor
-      \bf\zihao{4} \NJUT@value@englishadvisorname
+      %\bf\zihao{4} \NJUT@value@englishadvisorname
     \vskip \stretch{2}
     
     \ifNJUT@review
@@ -444,7 +444,7 @@
       \item[THESIS:] \NJUT@value@englishtitle
       \item[SPECIALIZATION:] \NJUT@value@englishmajor
       \item[POSTGRADUATE:] \NJUT@value@englishauthor
-      \item[MENTOR:] \NJUT@value@englishadvisor \NJUT@value@englishadvisorname
+      \item[MENTOR:] \NJUT@value@englishadvisor %\NJUT@value@englishadvisorname
     \end{description}
   }
   \begin{center}

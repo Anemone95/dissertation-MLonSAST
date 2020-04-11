@@ -2,11 +2,16 @@
 \section{一个XSS漏洞实例}
 为了说明扫描系统的实现，本小节将首先介绍一段简单的 XSS 漏洞Java Web代码，在接下来的几个小节中都将使用该代码辅助说明模块实现。
 
-\begin{minipage}[!htbp]{0.9\textwidth}
-\lstinputlisting[language=Java, caption={一段含XSS漏洞的Java代码}, label={code:xss}]{FIGs/chapter4/xssDemo.java}
-\end{minipage}
+\begin{figure}[!htbp]
+    \noindent
+    \centering
+    \begin{minipage}[!htbp]{0.9\textwidth}
+        \lstinputlisting[language=Java]{FIGs/chapter4/xssDemo.java}
+    \end{minipage}
+    \caption{一段含XSS漏洞的Java代码}\label{code:xss}
+\end{figure}
 
-代码如~\ref{code:xss} 所示，类 XSS 继承 HttpServlet，因此其可以通过重写 \textit{doGet()} 和 \textit{doPost()} 方法对外提供 HTTP 服务，在 \textit{doGET()} 方法中，其从用户输出参数 p 中获取值，接着判断值，若值以“safe”开头，则 q 被赋值为 safe(p)，否则 q 被赋值为 unsafe(p)，最终通过 \textit{sink()} 方法向用户返回 \textit{q}，在 \textit{doPOST()} 方法中，其直接调用 \textit{safe()} 方法，并将其返回。分析 \textit{safe()} 和 \textit{unsafe()} 方法不难发现，\textit{safe()} 方法是一个典型的过滤方法，而 \textit{unsafe()} 方法则存在安全性问题，这也造成 \textit{doGet()} 方法存在安全性问题，而 \textit{doPost()} 不存在安全问题。
+代码如图~\ref{code:xss} 所示，类 XSS 继承 HttpServlet，因此其可以通过重写 \textit{doGet()} 和 \textit{doPost()} 方法对外提供 HTTP 服务，在 \textit{doGET()} 方法中，其从用户输出参数 p 中获取值，接着判断值，若值以“safe”开头，则 q 被赋值为 safe(p)，否则 q 被赋值为 unsafe(p)，最终通过 \textit{sink()} 方法向用户返回 \textit{q}，在 \textit{doPOST()} 方法中，其直接调用 \textit{safe()} 方法，并将其返回。分析 \textit{safe()} 和 \textit{unsafe()} 方法不难发现，\textit{safe()} 方法是一个典型的过滤方法，而 \textit{unsafe()} 方法则存在安全性问题，这也造成 \textit{doGet()} 方法存在安全性问题，而 \textit{doPost()} 不存在安全问题。
 
 \section{污点分析模块的实现}\label{sec:taintImp}
 \subsection{记录污点传播信息实现}
@@ -59,13 +64,16 @@ $dataflow \leftarrow getDataflow(method)$;\\
 
 
 \subsection{构造污点传播图实现}
-在得到返回语句位置集合、调用语句位置集合和污点传播相关语句位置集合后，可以构造污点传播图，其构造方式如代码~\ref{code:taintGraph} 所示，实际存在于 \textit{InjectionSink.genBugInstance()} 方法中。
+在得到返回语句位置集合、调用语句位置集合和污点传播相关语句位置集合后，可以构造污点传播图，其构造方式如图~\ref{code:taintGraph} 所示，实际存在于 \textit{InjectionSink.genBugInstance()} 方法中。
 
-\begin{minipage}[!htbp]{0.9\textwidth}
-    \lstinputlisting[language=Java, caption={构造污点传播图的实现}, label={code:taintGraph}]{FIGs/chapter4/taintGraph.java}
-\end{minipage}\\
+\begin{figure}[!htbp]
+    \begin{minipage}[!htbp]{0.9\textwidth}
+        \lstinputlisting[language=Java]{FIGs/chapter4/taintGraph.java}
+    \end{minipage}
+    \caption{构造污点传播图的实现}\label{code:taintGraph}
+\end{figure}
 
-首先，代码构造了一个空的污点传播图，将直接调用敏感函数的边加入图中，以代码~\ref{code:xss} 为例，将$sink() \rightarrow Writer.write()$ 加入图中；接着向图中添加相关函数调用的边，具体地说，遍历污点传播相关语句位置集合，对于每一个 location，获取其调用函数（location 记录了调用函数的函数摘要），再获取其被调用函数（只需查找调用语句位置集合 loc2callee 即可），随后在将 location 转化为 SrcAnnotation，生成一条边并加入图中； 最后，只遍历先前得到的返回语句位置集合（injDetector.returns），向图中加入返回语句的点和边（代码 21-27 行）。\\
+首先，代码构造了一个空的污点传播图，将直接调用敏感函数的边加入图中，以图~\ref{code:xss} 中的代码为例，将$sink() \rightarrow Writer.write()$ 加入图中；接着向图中添加相关函数调用的边，具体地说，遍历污点传播相关语句位置集合，对于每一个 location，获取其调用函数（location 记录了调用函数的函数摘要），再获取其被调用函数（只需查找调用语句位置集合 loc2callee 即可），随后在将 location 转化为 SrcAnnotation，生成一条边并加入图中； 最后，只遍历先前得到的返回语句位置集合（injDetector.returns），向图中加入返回语句的点和边（代码 21-27 行）。\\
 
 \subsection{构造污点传播树并生成注解的实现}
 
@@ -239,9 +247,18 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
 \subsubsection{基于 Joana 的后向切片}
 对于得到的污染流对象，需要由切片器其代码对其后向切片，本系统默认使用Joana对其切片，其主要过程如代码所示，该代码实现于 \textit{JoanaSlicer.computeSlice()} 方法中。
 
-\begin{minipage}[!htbp]{0.9\textwidth}
-    \lstinputlisting[language=Java, caption={基于 Joana 的后向切片}, label={code:sliceJoana}]{FIGs/chapter4/sliceJoana.java}
-\end{minipage}
+%\begin{minipage}[!htbp]{0.9\textwidth}
+%    \lstinputlisting[language=Java, caption={基于 Joana 的后向切片}, label={code:sliceJoana}]{FIGs/chapter4/sliceJoana.java}
+%\end{minipage}
+
+\begin{figure}[!htbp]
+    \noindent
+    \centering
+    \begin{minipage}{0.9\textwidth}
+        \lstinputlisting[language=Java]{FIGs/chapter4/sliceJoana.java}
+    \end{minipage}
+\caption{基于 Joana 的后向切片}\label{code:sliceJoana}
+\end{figure}
 
 代码首先要获取函数 func 的 SDG ，若该函数在缓存中存在，则直接拿出（第 3 行），若不存在，则需要根据配置和入口生成 SDG（第 5$\sim$16 行）。接着使用 SDG 初始化一个 JoanaSDGSlicer，获取关注点行号上的所有 SDGNode 并且对其切片。切片完成后，对其按行号进行排序——这主要保证了每一次对相同污染流的切片的输出一致性。最后将其格式化为字符串。
 

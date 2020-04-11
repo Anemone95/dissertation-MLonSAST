@@ -22,7 +22,7 @@
 \hypersetup{
 % pdf 属性
             pdftitle={LaTeX Thesis Template of Nanjing University}, %
-            pdfauthor={San Zhang}
+            pdfauthor={Wenyuan Xu}
 }
 
 % 表格
@@ -70,10 +70,20 @@
     numbersep=5pt,
     breaklines,
     columns=flexible,
-    %frame=single,
+    frame=single,
+    framexleftmargin=15pt
     %numberbychapter=false
 }
 \renewcommand{\lstlistingname}{代码}
+
+\makeatletter
+%preamble
+\ifNJUT@review%
+    \newcommand\snum{}
+\else%
+    \newcommand\snum{MF1832200}
+\fi%  
+\makeatother
 
 %% added by lhy
 %%取消默认楷书命令
@@ -131,7 +141,7 @@
 % 南大中文封面内容字符串
 \title{基于机器学习的 Java 静态漏洞扫描系统的设计与实现}
 \author{徐文远}
-\studentnum{MF1832200}
+\studentnum{\snum}
 \grade{2018}
 \advisor{\kaishu 房春荣~~讲师}
 
@@ -153,6 +163,7 @@
 \englishmajor{Software Engineering}
 \englishdate{May 2020}
 
+
 % 制作封面命令
 \maketitle
 
@@ -169,7 +180,7 @@
 
 \begin{abstract}
     
-随着软件规模不断扩大，对于软件和信息系统的攻击日益增多，人们对软件安全的要求不断提升。为此，工程师在软件开发和测试过程中对使用静态代码分析系统对软件代码进行安全性扫描，并对报告进行评估，只有通过安全性评估的软件才可以部署至线上运行。然而，传统代码分析往往是保守的，为了不遗漏安全风险，系统往往会抛出大量误报，这些误报增加了安全工程师工作量，进而对软件开发进度产生影响。随着机器学习领域的发展，学术界已将机器学习算法运用于代码分析以发现漏洞或降低误报，然而这些工作只适用于小规模程序，对于在大规模应用还存在着种种问题。
+随着软件系统应用领域不断扩大，对于软件和信息系统的攻击日益增多，人们对软件安全的要求不断提升。为此，在软件开发和测试过程中，工程师使用静态代码分析系统对软件代码进行安全性扫描，并评估分析报告，只有通过安全性评估的软件才可以部署至线上运行。然而，传统代码分析往往是保守的，为了不遗漏安全风险，系统往往会抛出大量误报，这些误报增加了安全工程师工作量，进而对软件开发进度产生影响。随着机器学习领域的发展，学术界已将机器学习算法运用于代码分析以发现漏洞或降低误报，然而这些工作只适用于小规模程序，对于在大规模应用还存在着种种问题。
 
 本系统旨在将学术研究成果应用于工业界实际项目中，面向 Web 开发常用的 Java 语言，利用污点分析、程序切片和 BLSTM 为开发或安全工程师提供更准确的代码扫描服务，进而减轻用户工作量，保证软件开发进度和质量。在污点分析方面，本系统利用 Find Security Bugs 的大量规则，保证低漏报的同时，对该工具的输出进行改进，使之反馈更详细的污点传播路径，增强报告可解释性；接着，本系统利用程序切片技术，对每一个漏洞实例进行代码切片，为了保证切片效率和稳定性，本文针对实际 Jar 包对切片器进行优化并提出分段切片思想，对于一个漏洞报告，将其对应的污点传播路径分解为小的污染流片段集合，再对每一个片段进行后向程序切片；最后，系统通过BLSTM模型，对预处理后的漏洞的切片集合做预测，根据切片的预测结果推导漏洞实例本身是否为误报。
 
@@ -183,11 +194,11 @@
 % 英文摘要
 \begin{englishabstract}
     
-The large scale software systems make more and more attacks on software and information systems. So nowadays people pay more and more attention on software security. During software development and testing, engineers often scan software codes with static code analysis systems. Only software that has passed the security testing can be deployed online. While traditional static code analysis are often conservative. In order not to miss any security risks, they often give a large number of false positives. These false positives not only increase the workload of security engineers, but also delay the progress of software development. With the development of  machine learning, researchers have applied machine learning on code analysis to discover vulnerabilities or reduce false positives. However, their works are only applicable to small-scale programs. 
+As the application area of software systems continues to expand, attacks on software and information systems are increasing. So nowadays people pay more and more attention on software security. During software development and testing, engineers often scan software codes with static code analysis systems. Only software that has passed the security testing can be deployed online. While traditional static code analysis is often conservative. In order not to miss any security risks, they often give a large number of false positives. These false positives not only increase the workload of security engineers, but also delay the progress of software development. With the development of  machine learning, researchers have applied machine learning on code analysis to discover vulnerabilities or reduce false positives. However, their works are only applicable to small-scale programs. 
 
-This system aims to apply academic researches to the real word. For one of the  most commonly  language for Web development, Java, this system utilizes taint analysis, program slicing, and BLSTM to provide more accurate code analysis services for development or security engineers. In terms of taint analysis, the system uses a large number of rules in Find Security Bugs to ensure low false negatives. At the mean while, it can give taint propagation paths to make the report more readable. Then, the system slices each vulnerability instance. In order to ensure slicing efficiency and stability, this system optimizes the slicer for the actual Jar package and proposes an idea called ​​segmented slicing. For a taint vulnerability, its taint paths are divided into small set of taint flow fragments, then the system use backward program slicing to slice each taint flow. Finally, the system uses the BLSTM model to predict vulnerability's slicing set which have been pre-processed, and infer whether the vulnerability instance is false positive based on the slice prediction.
+This system aims to apply academic research to the real world. For one of the most commonly languages in Web development, Java, this system utilizes taint analysis, program slicing, and BLSTM to provide more accurate code analysis services for development or security engineers. In terms of taint analysis, the system uses a large number of rules in Find Security Bugs to ensure low false negatives. In addition, it can give taint propagation paths to make the report more readable. Then, the system slices each vulnerability instance. In order to ensure slicing efficiency and stability, this system optimizes the slicer for the actual Jar package and proposes an idea called ​​segmented slicing. For a taint vulnerability, its taint paths are divided into small set of taint flow fragments, then the system uses backward program slicing to slice each taint flow. Finally, the system uses the BLSTM model to predict vulnerability's slicing set which have been pre-processed, and infer whether the vulnerability instance is false positive based on the slice prediction.
 
-This system has repleced the traditional taint analysis engine online. The experimental results show that the system can obtain more accurate scanning results within an acceptable scanning time. In terms of efficiency, the system optimizes traditional slicing to ensure that the scan time of each projects does not exceed 1 hour. For accuracy,  the system's precision rate reaches 90.53\%. In other words, compared to Find Security Bugs, the system has eliminated 25.44\% false positives, which greatly reduced the code audit work.
+This system has replaced the traditional taint analysis engine online. The experimental results show that the system can obtain more accurate scanning results within an acceptable scanning time. In terms of efficiency, the system optimizes traditional slicing to ensure that the scan time of each project does not exceed 1 hour. For accuracy,  the system's precision rate reaches 90.53\%. In other words, compared to Find Security Bugs, the system has eliminated 25.44\% false positives, which greatly reduced the code audit work.
 
 \englishkeywords{SCA, Taint Analysis, Program Slicing，BLSTM}
 \end{englishabstract}
@@ -235,6 +246,11 @@ This system has repleced the traditional taint analysis engine online. The exper
 %% 因为overleaf上没有这个参考文献排版文件
 % \bibstyle{elsart-num}
 
+\makeatletter
+%preamble
+\ifNJUT@review%
+\else%
+
 %个人简介
 \Nchapter{简历与科研成果}
 \noindent {\heiti 基本情况}
@@ -249,13 +265,13 @@ This system has repleced the traditional taint analysis engine online. The exper
 \end{description}
 % 发表文章目录
 
-\noindent {\heiti 参与项目}
+\noindent {\heiti 科研项目}
 
 \begin{enumerate}[label=\arabic*., labelindent=0em, leftmargin=*]
-    \item 南京南瑞集团项目：调度自动化软件安全漏洞与风险实验能力提升关键技术 研究，2018-2019。
+    \item 南京南瑞集团项目：调度自动化软件安全漏洞与风险实验能力提升关键技术研究，2018-2019。
 \end{enumerate}
 
-\noindent {\heiti 成果}
+\noindent {\heiti 科研成果}
 
 \begin{enumerate}[label=\arabic*., labelindent=0em, leftmargin=*]
     \item 房春荣、龚爱、\textbf{徐文远}、蒋燕、李玉莹、陈振宇，``一种基于Android源代码的风险等级预测方法''，申请号：201810092876.1，已受理。
@@ -281,6 +297,8 @@ This system has repleced the traditional taint analysis engine online. The exper
 
 \end{thanks}
 
+\fi%  
+\makeatother
 
 \end{document}
 
