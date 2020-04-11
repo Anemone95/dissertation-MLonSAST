@@ -6,7 +6,7 @@
 \begin{itemize}
     \item  白盒测试：也称为静态测试，通常发生在软件编码阶段，对应用程序的源代码或对源码编译产生的二进制文件进行安全性审计，从而发现漏洞。该场景下的技术由于获取了源代码信息，也被称为源码扫描或静态扫描，其可以获得较高的代码覆盖率，发现更多的漏洞，但由于无法运行而产生大量误报，它也是本文系统的应用场景。
     \item 黑盒测试：通常发生在软件测试和运行阶段，对应用程序动态运行，并输入数据，分析程序反馈从而发现漏洞。适用于该场景的技术可以在程序只暴露接口的情况下展开测试，因此应用广泛，同时动态运行程序使其具有更低的误报，甚至产生漏洞利用报告，但由于如今应用程序复杂，自动化测试技术往往无法覆盖所有的代码逻辑。
-    \item 灰盒测试：介于白盒和黑盒之间的一种测试，这一场景下的技术往往通过软件插桩或是逆向工程，不但关注程序输入输出信息，还可以了解部分程序内部逻辑。因此具备上述两种测试的优点，许多黑白盒测试技术稍加改造也可以变为灰盒测试技术，但由于其终究还是需要获取程序本身，以及需要动态运行，使用比纯黑百盒测试更为复杂。
+    \item 灰盒测试：介于白盒和黑盒之间的一种测试，这一场景下的技术往往通过软件插桩或是逆向工程，不但关注程序输入输出信息，还可以了解部分程序内部逻辑。因此具备上述两种测试的优点，许多黑白盒测试技术稍加改造也可以变为灰盒测试技术，但由于其终究还是需要获取程序本身，以及需要动态运行，使用比纯黑白盒测试更为复杂。
 \end{itemize}
 
 在漏洞挖掘技术发展早期，每一种技术往往只能应用于一种特定场景，但随着研究者的不断完善和改进，如今一种技术也可以适用于多种场景，并且技术本身也产生了相互组合，对其正交分类较为困难，本章就目前常用的漏洞挖掘技术进行粗略分类并分别进行简要介绍~\cite{liujian2018,meihong2009}。
@@ -14,10 +14,10 @@
 
 % 需要写java的常见漏洞吗？
 \subsection{基于代码分析的漏洞挖掘技术}
-这一类漏洞挖掘技术侧重于对程序代码本身进行分析，同时对漏洞产生原理进行建模，将程序分析结果结合漏洞模型发掘漏洞，主要用于白盒测试场景。主要有词法分析技术、数据流分析技术、形式化分析技术和符号执行技术。\\
-\vspace{1cm}
+这一类漏洞挖掘技术侧重于对程序代码本身进行分析，同时对漏洞产生原理进行建模，将程序分析结果结合漏洞模型发掘漏洞，主要用于白盒测试场景。主要有词法分析技术、数据流分析技术、形式化分析技术和符号执行技术。
+
 \subsubsection{词法分析技术}
-词法分析技术是最简单的一类漏洞挖掘技术，其主要思想是将代码文本与归纳好的缺陷模式进行匹配，以此发现漏洞。由于其不深入分析程序结构和语义，往往只能挖掘较为简单的一类漏洞，并且存在相当高的误报率，在实际场景下应用较少，但由于其思想简单，适用性很广，目前也还存在类似工具，如：MobSF~\footnote{\url{https://github.com/MobSF/Mobile-Security-Framework-MobSF}}，Cobra~\footnote{\url{https://github.com/WhaleShark-Team/cobra}}。\\
+词法分析技术是最简单的一类漏洞挖掘技术，其主要思想是将代码文本与归纳好的缺陷模式进行匹配，以此发现漏洞。由于其不深入分析程序结构和语义，往往只能挖掘较为简单的一类漏洞，并且存在相当高的误报率，在实际场景下应用较少，但由于其思想简单，适用性很广，目前也还存在类似工具，如：MobSF~\footnote{\url{https://github.com/MobSF/Mobile-Security-Framework-MobSF}}，Cobra~\footnote{\url{https://github.com/WhaleShark-Team/cobra}}。
 
 \subsubsection{数据流和控制流分析技术}
 数据流分析是一种按程序执行路径模拟数据流动的一种分析技术，其原本用于进行程序优化~\cite{Kildall1973}，安全研究者们发现后将其运用于漏洞挖掘中，如今该技术在白盒，灰盒和黑盒测试都有应用~\cite{Shastry2016}。
@@ -26,7 +26,7 @@
 对于过程内分析，根据其对程序路径的分析精度，可分为流不敏感分析，流敏感分析和路径敏感分析。流不敏感的数据流分析只是按代码行号从上而下进行分析；流敏感分析会首先产生程序的控制流图（CFG, Control Flow Graph），再按照CFG的拓扑排序正向或逆向的分析；路径敏感信息不仅考虑到语句的先后顺序，还会考虑语句的可达性，即会沿实际可执行到路径进行分析。
 过程间分析首先构造程序的调用图（CG, Call Graph），接着遍历图中的函数进行过程内分析，当遇到其他函数时，若已分析过，则直接使用分析结果向下分析，若未分析过，则跟进该函数，再次进行过程内分析，并且将分析结果保存。
 
-数据流分析能够一定程度上理解程序语义，是一种比词法分析技术更为精确的一类分析技术，其关键在于准确的计算程序的数据流，此外，本文使用的污点分析技术作为数据流分析的一种特例，作为本系统所使用的技术之一，将在下文单独一章进行介绍。\\
+数据流分析能够一定程度上理解程序语义，是一种比词法分析技术更为精确的一类分析技术，其关键在于准确的计算程序的数据流，此外，本文使用的污点分析技术作为数据流分析的一种特例，作为本系统所使用的技术之一，将在下文单独一章进行介绍。
 
 \subsubsection{形式化方法分析技术}
 形式化方法分析主要思想是将软件代码性质进行形式化描述，再判断该描述是否满足漏洞特征的一类分析方法~\cite{B:automatedTheoremProving}，其中定理证明技术是形式化代码分析技术的主要代表。
@@ -36,7 +36,7 @@
 %https://github.com/leanprover/lean2
 定理证明技术将漏洞存在（或不存在）定义为一定理，再将源程序代码特征转化为数学表达形式，最后对数学表达进行逻辑推理，若定理存在性得以证明，则漏洞存在（或不存在），即漏洞挖掘过程类似于数学上的定理证明过程。主要代表性工具有 infer~\footnote{\url{https://fbinfer.com/}}~\cite{atp:infer}、 ESC/Java~\cite{atp:escjava} 和 saturn~\cite{atp:saturn}。
 
-该技术作为一种使用严格的数理逻辑推理作为检测手段的技术，具有极低的误报率，但由于其需要针对特定漏洞构建数学条件，需要大量的人工参与，有的漏洞甚至难以用数学结构表达，导致其适用于死循环、资源泄露和空指针等问题，对新漏洞的扩展性不高，同时，如何将大规模程序应用于形式化方法分析也成为工业界亟待解决的问题。 \\
+该技术作为一种使用严格的数理逻辑推理作为检测手段的技术，误报率较低，但由于其需要针对特定漏洞构建数学条件，需要大量的人工参与，有的漏洞甚至难以用数学结构表达，目前只适用于死循环、资源泄露和空指针等问题，对新漏洞的扩展性不高，同时，如何将大规模程序应用于形式化方法分析也成为工业界亟待解决的问题。 
 
 \subsubsection{符号执行技术}
 符号执行技术是一种将程序执行可达性问题转化为约束求解问题，并以此进行漏洞挖掘的技术~\cite{sym:sum}，代表性工具有angr~\footnote{\url{http://angr.io/}}，DART~\cite{sym:dart}, CUTE~\cite{sym:cute}, EXE~\cite{sym:exe}和KLEE~\cite{sym:klee}。
@@ -46,7 +46,7 @@
 
 具体来说，符号执行包含一个符号状态表$\sigma$和一个符号路径约束$PC$，开始时，$\sigma=\varnothing, PC=true$，每读取一条语句，就将变量抽象为约束求解中的变量、常量或他们的表达式放入$\sigma$中，特别的，当遇到条件判断$if(e)$时，将if分支的$PC$更新为$PC \wedge \sigma(e)$，将else分支的$PC'$更新为$PC\wedge \neg\sigma(e)$，随后使用约束求解器求解$PC$和$PC'$，如果约束不满足，则停止对该分支的解析（因为该分支不可达）。当符号执行遇到程序崩溃、预先定义的漏洞语句、或是程序正常退出时，整个分析停止，同时可以计算可以到达停止点的输入。
 
-符号执行可以分析程序中的控制流、覆盖更多的代码，同时也有效降低了误报率，但传统符号执行严重依赖于约束求解器的能力，例如，若约束求解器不能处理非线性计算，或是整个程序中存在无法分析的第三方库，那么整个分析将无法继续。为解决这些问题，研究者们提出了动态符号执行的想法~\cite{sym:dart,sym:cute,sym:exe,sym:klee}，但其在实际应用中仍不是很广泛，主要原因在于其需要大量计算资源，甚至在处理大规模程序时，出现的路径爆炸问题会导致约束求解无法产生结果。\\
+符号执行可以分析程序中的控制流、覆盖更多的代码，同时也有效降低了误报率，但传统符号执行严重依赖于约束求解器的能力，例如，若约束求解器不能处理非线性计算，或是整个程序中存在无法分析的第三方库，那么整个分析将无法继续。为解决这些问题，研究者们提出了动态符号执行的想法~\cite{sym:dart,sym:cute,sym:exe,sym:klee}，但其在实际应用中仍不是很广泛，主要原因在于其需要大量计算资源，甚至在处理大规模程序时，出现的路径爆炸问题会导致约束求解无法产生结果。
 
 \subsection{基于模糊测试的漏洞挖掘技术}
 模糊测试是一种通过构造大量非预期输入，同时观察软件运行反馈来发现软件漏洞的方法~\cite{fuzzingstateofart}。
@@ -63,7 +63,7 @@
 %https://github.com/firmianay/CTF-All-In-One/blob/master/doc/5.5_taint_analysis.md
 %http://www.jos.org.cn/html/2017/4/5190.htm
 %http://www.jos.org.cn/html/2019/2/5581.htm
-污点分析属于数据流分析的变种，通过判断关键操作的数据（如调用危险函数的参数）是否可被用户操控，推测程序是否存在 安全性漏洞~\cite{taint:wanglei}。由于其了解程序上下文，并且有较强的可解释性——安全工程师可以通过跟踪污点传播过程判断是否存在安全问题，因此其也成为了挖掘 Web 或 Android 漏洞较为常用的技术，也被很多开源或商用白盒扫描器使用，如：Pixy~\cite{pixy}、Find Security Bugs ，Fortify~\footnote{\url{https://www.microfocus.com/en-us/solutions/application-security}}和LGTM~\footnote{\url{https://lgtm.com/}}。\\
+污点分析属于数据流分析的变种，通过判断关键操作的数据（如调用危险函数的参数）是否可被用户操控，推测程序是否存在安全性漏洞~\cite{taint:wanglei}。由于其了解程序上下文，并且有较强的可解释性——安全工程师可以通过跟踪污点传播过程判断是否存在安全问题，因此其也成为了挖掘 Web 或 Android 漏洞较为常用的技术，也被很多开源或商用白盒扫描器使用，如：Pixy~\cite{pixy}、Find Security Bugs ，Fortify~\footnote{\url{https://www.microfocus.com/en-us/solutions/application-security}}和LGTM~\footnote{\url{https://lgtm.com/}}。
 
 \subsection{污点分析原理}
 
@@ -86,7 +86,7 @@
 
 \begin{figure}[!htbp]
 	\centering
-	\includegraphics[width=0.5\linewidth]{FIGs/chapter2/internal_taintflow.png}
+	\includegraphics[width=0.5\linewidth]{FIGs/chapter2/internal_taintflow.pdf}
 	\caption{过程内污点分析}\label{internalflow}
 \end{figure}
 
@@ -96,11 +96,11 @@
 
 \begin{figure}[!htbp]
 	\centering
-	\includegraphics[width=0.7\linewidth]{FIGs/chapter2/external_taintflow.png}
+	\includegraphics[width=0.7\linewidth]{FIGs/chapter2/external_taintflow.pdf}
 	\caption{过程间污点分析}\label{externalflow}
 \end{figure}
 
-如图~\ref{externalflow}所示，分析过程从左侧函数开始，因为其找到了一处产生点——\textit{request.getParameter("xss")}，于是将污点传递到变量\textit{p}，接着调用函数\textit{func(p)}，于是对函数\textit{func}做过程内分析，得到其函数摘要，$\left\langle func, \left\{a, b, c\right\}, 1\right\rangle$，于是回到调用者的函数内，变量\textit{q}被标记为污点，又因为第三行存在一处汇聚点——\textit{response.getpriter.print()}，并且参数为污点，于是报告此处有漏洞，并且根据汇聚点可以判断该漏洞是一个 XSS 漏洞。\\
+如图~\ref{externalflow}所示，分析过程从左侧函数开始，因为其找到了一处产生点——\textit{request.getParameter("xss")}，于是将污点传递到变量\textit{p}，接着调用函数\textit{func(p)}，于是对函数\textit{func}做过程内分析，得到其函数摘要，$\left\langle func, \left\{a, b, c\right\}, 1\right\rangle$，于是回到调用者的函数内，变量\textit{q}被标记为污点，又因为第三行存在一处汇聚点——\textit{response.getpriter.print()}，并且参数为污点，于是报告此处有漏洞，并且根据汇聚点可以判断该漏洞是一个 XSS 漏洞。
 
 \subsection{污点分析的优势和不足}
 污点分析能够对程序上下文有一定理解，往往能产生误报率相对较低以及可解释的漏洞报告，其方法对 Web 类型的安全漏洞覆盖率较高，而污点类型的漏洞普遍具有较高的危害性~\cite{taintStyle,aletheia}，因此该方法已被很多工业界、学术界的安全静态扫描工具所使用~\cite{taintStyle,taint:taj,pixy}，本文也选择该技术产生初步的漏洞扫描结果。
@@ -111,20 +111,20 @@
 	\centering
 	\subfigure[污点传播难以处理容器类型]{
 		\label{taintcase1}
-		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase1.png}}
+		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase1.pdf}}
 	% \hspace{0.1in}
 	\subfigure[污点传播难以分析控制流]{
 		% \label{fig:subfig:b} %% label for second subfigure
 		\label{taintcase2}
-		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase2.png}}
+		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase2.pdf}}
 	\subfigure[污点传播难以处理特殊污染条件]{
 		% \label{fig:subfig:b} %% label for second subfig ure
 		\label{taintcase3}
-		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase3.png}}
+		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase3.pdf}}
 	\subfigure[污点传播难以分析清洁函数]{
 		% \label{fig:subfig:b} %% label for second subfigure
 		\label{taintcase4}
-		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase4.png}}
+		\includegraphics[width=0.4\textwidth]{FIGs/chapter2/tpcase4.pdf}}
 	\caption{污点传播的不足}
 	\label{fig:rq3} %% label for entire figure
 \end{figure}
@@ -136,12 +136,12 @@
 
 最后，不论是动态污点传播还是静态污点传播，其对污点清洁点的识别能力几乎为零，如图~\ref{taintcase4}所示，程序已经对潜在的XSS攻击做出的处理——即在第2$\sim$5行对用户输入的特殊符号进行替换和过滤，但是污点传播并不能识别这些清洁点，导致误报。    
 
-正是因为存在这些不足，本文将在下文引入程序切片技术和 BLSTM 来降低误报率。\\
+正是因为存在这些不足，本文将在下文引入程序切片技术和 BLSTM 来降低误报率。
 
 \subsection{Java污点分析工具选型}
 Java上的污点分析工具有很多，如 Find Security Bugs，TAJ~\cite{taint:taj}。但对于安全扫描工具来说，除了污点传播引擎，针对漏洞定义好大量的入口点和汇聚点是扫描低漏报的重要保证。Find Security Bugs 作为较为经典的扫描工具，前人已经为预先定义了大量的污点传播入口点和汇聚点，并且支持自定义新的入口点和汇聚点，非常适合二次开发。
 
-本系统保证准确性的手段在于利用机器学习对污点传播的误报进行改进，而不是定义大量污点传播规则，因此本文使用 Find Security Bugs 进行污点传播分析。此外，本系统解决了原版 Find Security Bugs 不能展示传播路径的问题，使其更加易用。\\
+本系统保证准确性的手段在于利用机器学习对污点传播的误报进行改进，而不是定义大量污点传播规则，因此本文使用 Find Security Bugs 进行污点传播分析。此外，本系统解决了原版 Find Security Bugs 不能展示传播路径的问题，使其更加易用。
 
 \section{程序切片技术}
 \subsection{程序切片定义}
@@ -188,24 +188,24 @@ $$
     
 \end{definition}
 
-按照定义，可以知道Mark Weiser实际上定义的是后向切片（backward slices），即切出对关注点造成影响的所有语句和谓词集合。对其改进后也出现了前向切片（forward slices），即切出被关注点影响的其他语句和谓词集合。\\
+按照定义，可以知道Mark Weiser实际上定义的是后向切片（backward slices），即切出对关注点造成影响的所有语句和谓词集合。对其改进后也出现了前向切片（forward slices），即切出被关注点影响的其他语句和谓词集合。
 
 \subsection{程序切片技术}
 %https://www.cnblogs.com/maifengqiang/archive/2013/05/21/3090739.html
 程序切片技术自诞生以来，也经历了多个阶段~\cite{slices:xu2005brief}，起初为Mark Weiser的概念阶段，主要通过控制流来进行程序切片；随后发展为基于依赖图的切片阶段，Ottenstein等人~\cite{slices:ottenstein1984program}首先提出了运用程序依赖图（PDG，Program Dependence Graph）进行切片，主要思想是首先对程序建立程序依赖图，再通过对程序依赖图的可达性计算进行后向切片，程序依赖图是一种反应语句数据依赖和控制依赖的一种程序中间表达形式，图中的点为单条程序语句，而图中的边则表示语句之间存在数据依赖关系，例如图~\ref{internalflow}的代码中，第三行与第二行就存在数据依赖关系，第七行与第四行则存在控制依赖关系。PDG只适用于单个函数的切片，horwitz等人~\cite{slices:horwitz1990}提出了系统依赖图（SDG, System Dependence Graph）的概念，在 PDG 的基础上，额外增加了两种边，一种边表示调用函数和被调用的直接依赖关系，另一种边描述由于边的依赖而引发的间接依赖关系，同时，前向切片也在此阶段产生；第三阶段为面向对象程序切片阶段，研究者提出将接受对象作为一个隐藏参数，结合多态解析手段，将面向对象切片问题转换为一般切片问题，使程序切片可以运用于面向对象语言。
 
-目前已有很多工具可以对java程序进行切片，例如WALA（T.J. Watson Libraries for Analysis）~\footnote{\url{http://wala.sourceforge.net/wiki/index.php/Main_Page}}和Joana~\footnote{\url{https://pp.ipd.kit.edu/projects/joana/}}。WALA原本由IBM T.J. Watson 研究中心作为DOMO项目的一部分进行开发，在2006年，IBM将改软件转赠给社区。其主要功能包括Java类型系统和类层次分析，过程间数据流分析、指针分析和调用图构造以及上下文相关的切片等。Joana是由卡尔斯鲁厄理工学院推出，基于WALA 的一些分析手段构造的另一款 Java 切片工具，其包含指针分析，异常分析和PDG构图等复杂功能，并且其切片结果中能够更清晰的看到函数调用时实参的值，而对于污点传播类型中的自定义过滤函数，实参的值是一个很重要的特征（见图~\ref{fig:sliceresult}），因此本文选择Joana作为程序的切片器。\\
+目前已有很多工具可以对java程序进行切片，例如WALA（T.J. Watson Libraries for Analysis）~\footnote{\url{http://wala.sourceforge.net/wiki/index.php/Main_Page}}和Joana~\footnote{\url{https://pp.ipd.kit.edu/projects/joana/}}。WALA原本由IBM T.J. Watson 研究中心作为DOMO项目的一部分进行开发，在2006年，IBM将该软件转赠给社区。其主要功能包括Java类型系统和类层次分析，过程间数据流分析、指针分析和调用图构造以及上下文相关的切片等。Joana是由卡尔斯鲁厄理工学院推出，基于WALA 的一些分析手段构造的另一款 Java 切片工具，其包含指针分析，异常分析和PDG构图等复杂功能，并且其切片结果中能够更清晰的看到函数调用时实参的值，而对于污点传播类型中的自定义过滤函数，实参的值是一个很重要的特征（见图~\ref{fig:sliceresult}），因此本文选择Joana作为程序的切片器。
 \begin{figure}[!htbp]
 	\centering
 	\subfigure[目标程序]{
-		\includegraphics[width=0.42\textwidth]{FIGs/chapter2/slicetarget.png}}
+		\includegraphics[width=0.42\textwidth]{FIGs/chapter2/slicetarget.pdf}}
 	% \hspace{0.1in}
 	\subfigure[Joana程序切片结果]{
 		% \label{fig:subfig:b} %% label for second subfigure
-		\includegraphics[width=0.42\textwidth]{FIGs/chapter2/joanaslice.png}}
+		\includegraphics[width=0.42\textwidth]{FIGs/chapter2/joanaslice.pdf}}
 	\subfigure[WALA程序切片结果]{
 		% \label{fig:subfig:b} %% label for second subfigure
-		\includegraphics[width=0.85\textwidth]{FIGs/chapter2/walaslice.png}}
+		\includegraphics[width=0.85\textwidth]{FIGs/chapter2/walaslice.pdf}}
 	\caption{Joana和WALA程序切片示例}
 	\label{fig:sliceresult} %% label for entire figure
 \end{figure}
@@ -215,13 +215,13 @@ $$
 
 由于污点传播已经对程序由上而下的进行了分析，通过对汇聚点和污点值进行后向程序切片，可以从反方向分析漏洞代码，暴露先前没有考虑的控制语句，同时通过进一步的特征处理，可以作为神经网络的输入，弥补污点传播对控制流分析不足的缺陷，因此本文采用该技术作为特征处理的基础工作，另外由于程序切片属于较为传统的技术，在java语言上已有较为成熟的工具，考虑到 Java 漏洞的特征与函数参数强相关这一特性，本文选择 Joana 进行程序切片。
 
-然而，传统后向程序切片也存在不足，目前最大的挑战在于当程序规模变大时，后向程序切片效率低下；此外原生 Joana 并不支持在缺失程序依赖下对其程序进行切片，而在 SCA 的输入中，缺失依赖的程序又是非常常见的，针对以上问题本文做出了分段切片、限制调用图切片和无依赖切片的技术调整，具体细节将在第三四章节详细说明。\\
+然而，传统后向程序切片也存在不足，目前最大的挑战在于当程序规模变大时，后向程序切片效率低下；此外原生 Joana 并不支持在缺失程序依赖下对其程序进行切片，而在 SCA 的输入中，缺失依赖的程序又是非常常见的，针对以上问题本文做出了分段切片、限制调用图切片和无依赖切片的技术调整，具体细节将在第三四章节详细说明。
 
 \section{BLSTM算法}
-双向长短期记忆网络（BLSTM，Bidirectional Long Short-Term Memory）是一种特殊的循环神经网络（RNN，Recurrent neural network），主要改进有双向读取和增加记忆门两方面，是一种在自然语言处理上应用广泛的神经网络~\cite{lstm:translate}。\\
+双向长短期记忆网络（BLSTM，Bidirectional Long Short-Term Memory）是一种特殊的循环神经网络（RNN，Recurrent neural network），主要改进有双向读取和增加记忆门两方面，是一种在自然语言处理上应用广泛的神经网络~\cite{lstm:translate}。
 
 \subsection{LSTM原理介绍}
-为了保证在不同的序列数据上，相同数据点有不同输出结果，人们将其记忆体加入神经网络之中，从而产生了RNN，然而RNN在处理较长文本时，存在着梯度爆炸或梯度消失的问题~\cite{lstm:gradient}，Hochreiter和Schmidhuber于1997年在记忆体中加入写入、输出和遗忘门，而改进后的神经网络也被成为长短期记忆网络（LSTM，Long Short-Term Memory）~\cite{lstm:1997}。
+为了保证在不同的序列数据上，相同数据点有不同输出结果，人们将其记忆体加入神经网络之中，从而产生了RNN，然而RNN在处理较长文本时，存在着梯度爆炸或梯度消失的问题~\cite{lstm:gradient}，Hochreiter和Schmidhuber于1997年在记忆体中加入写入、输出和遗忘门，而改进后的神经网络也被称为长短期记忆网络（LSTM，Long Short-Term Memory）~\cite{lstm:1997}。
 
 \begin{figure}[htb]
 	\centering
@@ -236,7 +236,7 @@ $$
 	\caption{LSTM的处理时序数据示意图}\label{lstmtime}
 \end{figure}
 
-利用LSTM处理时序数据情况如图~\ref{lstmtime}所示，对于任意时刻$t$，有$h_{t-1}$和$c_{t-1}$（$t_0$时为随机值），$h_{t-1}$和$x_t$通过线性变换得到$z_f$、$z_i$、$z$和$z_o$，例如，$z_f=W_{f}\times [h,x]+b_{f}$。$z_f$、$z_i$、$z$和$z_o$均为以为向量，其长度等于该层LSTM神经元的个数，按上文所述，这4组向量输入神经元，结合神经元内的记忆体$c_{t-1}$计算得到输出$y_t$，同时$y_t$的值也作为下一轮输入的一部分，即$h_t$。$h_t$和$x_t+1$作为下一时刻的输入，输入下一时刻的神经元。在自然语言处理领域，人们通常利用最后一个时刻的输出对自然语言分类。\\
+利用LSTM处理时序数据情况如图~\ref{lstmtime}所示，对于任意时刻$t$，有$h_{t-1}$和$c_{t-1}$（$t_0$时为随机值），$h_{t-1}$和$x_t$通过线性变换得到$z_f$、$z_i$、$z$和$z_o$，例如，$z_f=W_{f}\times [h,x]+b_{f}$。$z_f$、$z_i$、$z$和$z_o$均为一维向量，其长度等于该层LSTM神经元的个数，按上文所述，这4组向量输入神经元，结合神经元内的记忆体$c_{t-1}$计算得到输出$y_t$，同时$y_t$的值也作为下一轮输入的一部分，即$h_t$。$h_t$和$x_t+1$作为下一时刻的输入，输入下一时刻的神经元。在自然语言处理领域，人们通常利用最后一个时刻的输出对自然语言分类。
 
 \subsection{双向读取——BLSTM}
 早在RNN时期，就有研究者提出双向RNN提升拟合或预测准确性的思想，而LSTM作为RNN的一种，自然也可以运用该思想对其进行优化。
@@ -251,7 +251,7 @@ $$
 
 \subsection{BLSTM 的优势}
 
-BLSTM的优势在于，单向LSTM在$x_t$时刻的输出实际上只被$x_0, x_1, \dots, x_t$影响，即其只能考虑截止到当前时刻的数据，而BLSTM的在某一时刻的输出值不仅受到该时刻正向数据的影响，还能受到该时刻后向数据的影响，因此有纵观全局的能力。\\
+BLSTM 的优势在于，单向 LSTM 在$x_t$时刻的输出实际上只被$x_0, x_1, \dots, x_t$影响，即其只能考虑截止到当前时刻的数据，而BLSTM的在某一时刻的输出值不仅受到该时刻正向数据的影响，还能受到该时刻后向数据的影响，因此有纵观全局的能力。
 
 LSTM 增加了门限机制，解决了RNN 梯度爆炸或梯度消失的问题，而 BLSTM 通过双向传播机制，能够综合正向时序和逆向时序信息，是时序数据的分类和拟合问题（如自然语言处理问题）较为合适的算法。而目前已有很多利用自然语言处理和该模型进行程序分析的研究~\cite{naturalSoftware,lstm:recognize,lstm:repo,vuldeepecker,Koc2017,Koc2019}。所以本系统采用 BLSTM 作为污点传播预测算法，将污点传播的切片作为上下文敏感的自然语言数据，通过训练集训练 BLSTM 参数将其保存，在给定污点传播的切片输入时，系统调用训练好的模型对其进行预测。
 
@@ -259,7 +259,7 @@ LSTM 增加了门限机制，解决了RNN 梯度爆炸或梯度消失的问题�
 \subsection{Django 框架简介}
 Django 是一个高级的 Python Web 开发框架~\footnote{\url{https://www.djangoproject.com/}}，它使开发者能够对 Web 应用进行简洁实用的设计并对其进行快速开发。Django 由一群有经验的开发者开发，其框架和内部设计避免了很多 Web 开发的问题，帮助开发者只关心于他们Web应用本身的逻辑而不需要重新开发通用组件。
 
-Django 采用模型视图模板（MVT，Model-View-Template）模式，在模型层，其有一套高效的对象关系映射（ORM，Object Relational Mapping）框架和一些常用对象，比如用户对象，管理员对象等；在视图层，Django 阶级了基于正则表达式的URL分派系统，能够让用户灵活的处理自己的 URL 路由，并且内置的 Request，Response 对象能够让开发者快速的获取和返回数据；在模板层，Django 有自己的原生模板引擎，类似于 Jinja2，同时支持用户更换第三方引擎，保证用户充分自由的展现其数据。除此之外，Django 还内置了一个用户管理后台和各类安全保障模块，使大大加速了开发者的开发过程。\\
+Django 采用模型视图模板（MVT，Model-View-Template）模式，在模型层，其有一套高效的对象关系映射（ORM，Object Relational Mapping）框架和一些常用对象，比如用户对象，管理员对象等；在视图层，Django 借鉴了基于正则表达式的 URL 分派系统，能够让用户灵活的处理自己的 URL 路由，并且内置的 Request，Response 对象能够让开发者快速的获取和返回数据；在模板层，Django 有自己的原生模板引擎，类似于 Jinja2，同时支持用户更换第三方引擎，保证用户充分自由的展现其数据。除此之外，Django 还内置了一个用户管理后台和各类安全保障模块，大大加速了开发者的开发过程。
 
 \subsection{Django 框架优势}
 本系统的后台主要是对机器学习模型的操作，因此自然选择了 Python 开发语言，而 Django 作为 Python 语言上应用最为广泛的Web开发框架之一，自然也成为了本系统后台的首选技术。

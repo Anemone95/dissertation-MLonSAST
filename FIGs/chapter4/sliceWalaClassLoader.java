@@ -25,8 +25,6 @@ private void loadAllClasses(
                 ShrikeClass tmpKlass = new ShrikeClass(reader, this, cha);
                 loadedClasses.put(T, new ShrikeClass(entryReader, this, cha));
             }
-        } catch (InvalidClassFileException e) {
-            /*...*/
-        }
+        } catch (InvalidClassFileException e) { /*...*/ }
     }
 }
