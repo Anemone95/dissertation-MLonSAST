@@ -116,8 +116,6 @@
   \hrule width 2.3in height 0.4pt
   \kern 2pt
 }
-
-
 \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 封面部分
@@ -216,7 +214,7 @@ This system has replaced the traditional taint analysis engine online. The exper
 \listoftables
 \addcontentsline{toc}{chapter}{表~~目~~录}
 % 生成插图目录命令
-\renewcommand*{\listtablename}{图~~目~~录}
+\renewcommand*{\listfigurename}{图~~目~~录}
 \listoffigures
 \addcontentsline{toc}{chapter}{图~~目~~录}
 
@@ -241,7 +239,7 @@ This system has replaced the traditional taint analysis engine online. The exper
 \input{chapter/ConclusionAndFetureWork.tex}
 
 % 参考文献
-
+\newpage
 \bibliography{reference}
 %% addde by lhy
 %% 因为overleaf上没有这个参考文献排版文件

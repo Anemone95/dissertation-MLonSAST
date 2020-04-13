@@ -212,7 +212,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 		后置条件 & 无\\
 		正常流程 & \tabincell{l}{
 			1. 用户选择“AI”，“Set Server”，显示服务器设置对话框\\
-			2. 用户服务器对话框汇中设置服务器地址以及令牌信息\\
+			2. 用户服务器对话框中设置服务器地址以及令牌信息\\
 			3. 用户点击“验证”按钮，检查配置是否正确\\
 			4. 用户点击“应用”按钮，完成服务器配置
 		}\\
@@ -281,7 +281,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 % 6标记正报结果
 预测模块的学习模型为监督式学习模型，因此对漏洞报告结果进行标记是预测准确性提升的关键，在实际应用时，即使没有学习模块，开发者或是安全工程师也会对漏洞报告进行是否为误报的判断，因此本系统只是利用了用户的反馈使其构成回路，而并没有加重用户的使用负担。
 
-标记正报结果用例描述如表~\ref{case:labeltp}所示，若漏洞实例被用户判断为真实存在的，用户可以对该漏洞标记为正报，此时用户，此时所有污染流片段均自动标记为不安全，并且发送给服务端。
+标记正报结果用例描述如表~\ref{case:labeltp}所示，若用户认为漏洞真实存在的，用户可将其标记为正报，此时用户，此时所有污染流片段均自动标记为不安全，并且发送给服务端。
 
 \begin{table}[!htbp]\footnotesize %label table
 	\centering
@@ -365,7 +365,7 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 \end{table}
 
 % 9模型训练
-模型训练的用例描述如表~\ref{case:train}所示，管理员通过在Web后端发起模型训练请求，系统会进行异步调用，通过消息队列，训练程序会根据选择的训练配置进行模型训练，并将训练模型保存，供预测时调用，用户也可以设置定时任务，是系统按时自动训练模型。
+模型训练的用例描述如表~\ref{case:train}所示，管理员通过在Web后端发起模型训练请求，系统会进行异步调用，通过消息队列，训练程序会根据选择的训练配置进行模型训练，并将训练模型保存，供预测时调用，用户也可以设置定时任务，系统将按时自动训练模型。
 \begin{table}[!htb]\footnotesize %label table
 	\centering
 	\caption{模型训练用例描述}
@@ -395,10 +395,10 @@ Java语言通常用于Web服务和Android程序开发，其中的大量安全漏
 
 
 \section{系统总体设计}
-本系统的框架图已在本节第一章图~\ref{overview} 展示，下面将对系统设计的模块从逻辑视图、开发视图、进程视图、物理视图和场景视图五个方面~\cite{4+1view} 详细介绍系统总体设计。% The 4+1 View Model of Architecture，Philippe Kruchten 
+本系统的框架图已在本节第一章图~\ref{overview} 展示，下面将对系统设计的模块从逻辑视图、开发视图、进程视图、物理视图和场景视图五个方面~\cite{4+1view} 详细介绍系统总体设计。
 
 % 逻辑视图=UML类
-本系统的逻辑视图如图~\ref{view:logic}所示，该视图主要反应了本系统的对象设计。
+本系统的逻辑视图如图~\ref{view:logic}所示，该视图主要反映了本系统的对象设计。
 
 \begin{figure}[!htbp]
     \centering
@@ -497,8 +497,6 @@ UI主要包括了客户端包和管理员Web端包；Service中存在污点分�
 
 最后介绍与边相关的类，Edge 类，该类表示一条边和连接边的对端顶点，peer 属性表示对端顶点， location 代表了两点之间通过哪一个代码位置与之相连，type 指这条边的类型，模块中主要有三种类型（“CALL”，代表函数调用；“SINK”，代表调用到汇聚点，“RET”，代表函数返回），blockId 属性表示这条边所在的代码块，该属性的目的是为了在结合 CFG 和污点传播图生成传播树时，保证边的顺序。代码位置由 SrcAnnotation  表示，该类将在下一章详细说明。
 
-% 是否要举个例子或者话一张该图的数据结构？
-
 \subsection{污点传播树和漏洞报告类图设计}
 
 污点传播树是展示污点传播路径的重要数据结构，其中叶子结点中有一污点入口点和一污点汇聚点，其他叶子节点为函数或返回语句节点，树的层级关系反映出函数调用关系，一棵传播树代表了一个唯一的污点传播全流程，其结构体和漏洞报告类图设计如图~\ref{taintTreeAnnotationClass} 所示。
@@ -509,7 +507,7 @@ UI主要包括了客户端包和管理员Web端包；Service中存在污点分�
 
 % 是否要举个例子或者画一张该图的说明该注解还以？
 漏洞注解类 BugAnnotation 、漏洞实例 BugInstance 类和漏洞实例 BugCollection 类都是 Spotbugs 定义的数据类型，漏洞注解类 BugAnnotation 为抽象类，表示漏洞的单行解释性文字。
-BugInstance 是应用中一个漏洞的基本单位，其有一个漏洞类型（type 属性）和多行漏洞注解（list 属性）组成。在 BugAnnotation 中， \textit{format()} 是该条注解在 GUI 界面上的显示文字时被调用的方法，\textit{writeXML()} 用于将注解保存为XML格式，以上为原生 Spotbugs 定义的方法，除此之外，为了方便反序列化，本模块还为其增加了 \textit{fromXML()}方法。NoteAnnotation、RetNodeAnnotation 和 MethodNodeAnnotation 对应于污点传播树的 TreeNode、RetTreeNode 和 MethodTreeNode 节点，对于抽象的节点注解类 NoteAnnotation 而言，其id、firstId，nextId 分别指向了 TreeNode的id，第一个孩子节点的id和第一个兄弟节点的id，depth 表示该节点距离树根的深度，具体类 RetNodeAnnotation 和 MethodNodeAnnotation 将实现 BugAnnotation 类的三个方法，特别的，RetNodeAnnotation 的 firstId 恒为 -1，因为返回语句的节点不会存在子节点。BugCollection 类主要有漏洞实例组成，除此之外，其还记录有项目名称（project），用户提交的应用jar包（appJars）、依赖包（libJars）和源码包（srcs）。
+BugInstance 是应用中一个漏洞的基本单位，其由一个漏洞类型（type 属性）和多行漏洞注解（list 属性）组成。在 BugAnnotation 中， \textit{format()} 是该条注解在 GUI 界面上的显示文字时被调用的方法，\textit{writeXML()} 用于将注解保存为XML格式，以上为原生 Spotbugs 定义的方法，除此之外，为了方便反序列化，本模块还为其增加了 \textit{fromXML()}方法。NoteAnnotation、RetNodeAnnotation 和 MethodNodeAnnotation 对应于污点传播树的 TreeNode、RetTreeNode 和 MethodTreeNode 节点，对于抽象的节点注解类 NoteAnnotation 而言，其id、firstId，nextId 分别指向了 TreeNode的id，第一个孩子节点的id和第一个兄弟节点的id，depth 表示该节点距离树根的深度，具体类 RetNodeAnnotation 和 MethodNodeAnnotation 将实现 BugAnnotation 类的三个方法，特别的，RetNodeAnnotation 的 firstId 恒为 -1，因为返回语句的节点不会存在子节点。BugCollection 类主要有漏洞实例组成，除此之外，其还记录有项目名称（project），用户提交的应用jar包（appJars）、依赖包（libJars）和源码包（srcs）。
 
 \begin{figure}[!htb]
 	\centering
@@ -527,7 +525,7 @@ BugInstance 是应用中一个漏洞的基本单位，其有一个漏洞类型�
 	\caption{污点分析器类图设计}\label{taintDetectorClass}
 \end{figure}
 
-AbstractTaintDetector 继承 Detector 类，该类也是记录污点传播信息的重要基类，其实现 Detector 的 \textit{visitClassContext()} 方法，并且在该方法内，调用 \textit{analyzeMethod()} 方法对每一个目标函数进行分析，本文对该方法进行了优化，在方法内部增加了记录函数调用关系和函数返回语句位置的逻辑。对于特殊指令，如 \textit{return} 和 \textit{invoke}，\textit{analyzeMethod()} 会调用  \textit{analyzeInst()} 对指令进行分析。
+AbstractTaintDetector 继承 Detector 类，该类也是记录污点传播信息的重要基类，其实现 Detector 的 \textit{visitClassContext()} 方法，并在其中调用 \textit{analyzeMethod()} 方法分析每一个目标函数，本文优化了该方法，在方法中增加了记录函数调用关系和函数返回语句位置的逻辑。对于特殊指令，如 \textit{return} 和 \textit{invoke}，\textit{analyzeMethod()} 会调用  \textit{analyzeInst()} 对指令进行分析。
 
 TaintGlobalData 类是一个单例类，使用 EhCache 保存被测程序中的函数调用关系（loc2callee 属性）和函数内部返回语句位置（method2returns 属性），loc2callee 实际上记录了函数调用发生时 invoke 指令所在函数位置与被调函数摘要的映射，method2returns实际上记录了函数摘要和以返回语句集合的映射，这些信息将在生成污染传播树时使用。其 \textit{getInstance()} 用于获取唯一实例，\textit{registerCache()} 和 \textit{releaseCache()} 用于一个 Detector 注册或释放缓存，当所有 Detector 释放缓存后，释放缓存方法会彻底清除缓存资源。
 
@@ -562,7 +560,7 @@ AbstractInjectionDetector 继承了 AbstractTaintDetector，进一步实现了�
 
 本模块的类图设计如图~\ref{sliceClass} 所示。首先介绍模块的核心控制类 SliceRunner，该类实现完整的切片控制流程，即读取污点传播报告，至最终产生每一漏洞实例的切片集合，其有三个属性成员：slicer，表示用于程序切片的切片器；parser，污点传播报告的翻译器；project，最终输出的切片项目。切片器和翻译器分别由 \textit{setSlicer()} 和 \textit{setParser()} 设置，\textit{run()} 方法是执行对漏洞报告切片的方法，其参数是一个监视器，上一节所说的模块流程将在该方法内完成，\textit{sliceTaintTree()} 是对一个污点传播树切片的方法，可以看到其参数是一个树节点，其表示该传播树的树根，\textit{sliceFlow()} 为对污染流切片的方法。
 
-Monitor 类为监视器接口，用于各种耗时较长的函数返回中间信息，具体地说，该接口的 \textit{init()} 方法用于通知开始某一流程，第一个参数为过程名，第二个参数表示过程共几个子过程；\textit{process()} 方法用于返回子过程信息，在每一个子过程完成后调用，其参数依次向监视器传递当前子过程序号、过程总数、子过程输入、子过程输出和遇到的异常。该接口规范了系统内的任务进度报告模式，使外部能够自由的处理每一子过程日志并及时通知用户（例如，在每一子过程完成时向屏幕输出进度或是处理异常），除了切片控制类会使用该类外，下文中预测控制类也会使用。
+Monitor 类为监视器接口，用于各种耗时较长的函数返回中间信息，具体地说，该接口的 \textit{init()} 方法用于通知开始某一流程，第一个参数为过程名，第二个参数表示过程共几个子过程；\textit{process()} 方法用于返回子过程信息，在每一个子过程完成后调用，其参数依次向监视器传递当前子过程序号、过程总数、子过程输入、子过程输出和遇到的异常。该接口规范了系统内的任务进度报告模式，使外部能够自由地处理每一子过程日志并及时通知用户（例如，在每一子过程完成时向屏幕输出进度或是处理异常），除了切片控制类会使用该类外，下文中预测控制类也会使用。
 
 接下来介绍与污点传播翻译器相关的类，Parser 是翻译器接口，用于将漏洞报告翻译为一个污点传播项目（\textit{rep2taintProject()} 方法），同样，该方法也有一个监视器作为参数。 SpotbugReportParser 实现了该接口，其属性有 bugCollection，该属性在类初始化时传入，表示污点传播报告，caredVulns 表示污点传播漏洞类型白名单，该属性为静态属性，plugin 为本系统优化后的 Find Security Bugs 插件文件地址。SpotbugReportParser 的 parse() 方法将 Spotbugs 项目的漏洞报告转化为了污点传播项目，而真正将每一漏洞实例还原为若干棵污点传播树的是 InstanceParser 类中的 \textit{parse()} 方法，该类成员变量 instance 为一漏洞实例，在类构造时传入。翻译的最终产出是 TaintProject 对象实例，该类中 bugInstances 表示了所有的污点传播漏洞集合，appJars 和 libJars 表示了用户提交的应用 Jar 包集合和第三方依赖 Jar 包集合，trees 为一组键值对，记录了一个 bugInstance 的所有污点传播树的树根节点。
 
@@ -596,11 +594,11 @@ Slicer 是切片器的接口，用于对污染流进行切片，\textit{config()
     \caption{数据预处理模块类图}\label{preClass}
 \end{figure}
 
-图~\ref{preClass} 展示了本模块的类图，Preprocessing 类用于对切片数据进行泛化理，其 rawSlice 属性为原切片字符串，strList 为字符串常量表，varList 为变量常量表，其 \textit{preprocess()} 方法为主要的泛化方法，输出以空格分隔的单词（token）。\textit{processNumber()} 、 \textit{processStr()} 和 \textit{processVar()} 分别是泛化数字常量、字符串常量和变量的方法，它们的输入为一行切片，输出为泛化后的切片字符串。\textit{processType()} 为泛化返回值类型的方法，其输入为表示返回值类型的字符串，输出为泛化后字符串。
+图~\ref{preClass} 展示了本模块的类图，Preprocessing 类用于对切片数据进行泛化处理，其 rawSlice 属性为原切片字符串，strList 为字符串常量表，varList 为变量常量表，其 \textit{preprocess()} 方法为主要的泛化方法，输出以空格分隔的单词（token）。\textit{processNumber()} 、 \textit{processStr()} 和 \textit{processVar()} 分别是泛化数字常量、字符串常量和变量的方法，它们的输入为一行切片，输出为泛化后的切片字符串。\textit{processType()} 为泛化返回值类型的方法，其输入为表示返回值类型的字符串，输出为泛化后字符串。
 
 Tokenizer 类用于将泛化后字符串转换为一维向量（向量化），其属性 freqGt 指只有当单词在数据集中出现频率大于该值时单词才有效否则表示为 UNK，其还包含一单词表对象 tokenDict，\textit{buildDict()} 用于构造一个单词表，其输入为 Pytorch 中定义的TextDataset，通过该对象可以遍历数据集中每一条数据，其输出为单词表。\textit{encode()} 方法用于将泛化字符串编码为向量，\textit{decode()} 是其反函数，用于将向量还原成字符串。
 
-TokenDict 为单词表类，用于记录单词和其整形 id 的对应关系，其属性 idx2word 和word2idx 分别记录了 id 至单词和单词至 id 的对照表，属性 unkToken 记录了未知单词的值（默认为“UNK ”），\textit{addWord()} 方法实现将一单词放入单词表中，\textit{wtoi()} 和 \textit{itow()} 是一对互逆操作，用于将单词转换为数字 id，以及将 id 还原为单词， \textit{save()} 和 \textit{load()} 分别实现了将单词表保存为文件，以及从文件中反序列化为单词表的操作。
+TokenDict 为单词表类，用于记录单词和其整形 id 的对应关系， idx2word 和word2idx 属性分别记录 id 至单词和单词至 id 的对照表， unkToken 属性记录了未知单词的值（默认为“UNK ”），\textit{addWord()} 方法实现将一单词放入单词表的逻辑，\textit{wtoi()} 和 \textit{itow()} 是一对互逆操作，用于将单词转换为数字 id，以及将 id 还原为单词， \textit{save()} 和 \textit{load()} 分别实现了将单词表保存为文件，以及从文件中反序列化为单词表的操作。
 
 \section{误报预测模块设计}
 
@@ -640,7 +638,7 @@ BLSTMRemotePredictor 实现了预测器接口，其属性 remoteServ 记录服�
 
 Views 是远程服务器的对外服务类，其包含了验证口令是否合法的方法 \textit{verify()}（对应于 BLSTMRemotePredictor.isAlive()，处理训练请求的方法 \textit{train()}，处理预测请求的方法 \textit{predict()}，以及处理标记请求的方法 \textit{label()}，其 model 属性代表当前最新的模型实例。
 
-Service 是模型的服务类，视图层接受到请求后，会将请求参数取出交给该类，再由该类调用 BLSTM 模型提供相应服务。这些服务主要有： \textit{load()} 用于加载一模型，其参数分为别为字典序列化文件的地址、BLSTM 序列化文件的地址、最小词频、词嵌入向量维度和隐藏层神经元个数； \textit{train()} 用于训练一个 BLSTM 模型，由于其参数较多这里省略，详细可以参照下一节中的表~\ref{sql:modelConfigTable}； \textit{predict()} 对应预测请求，其参数分别为序列化器、BLSTM 模型，以及一个切片字符串，返回该切片是否安全。\textit{test()} 用于测试一个神经网络模型准确率，前两个参数与 \textit{predict()} 方法相同，后面两个 String 类型参数分别为切片数据文件夹和标记数据文件夹。
+Service 是模型的服务类，视图层接收到请求后，会将请求参数取出交给该类，再由该类调用 BLSTM 模型提供相应服务。这些服务主要有： \textit{load()} 用于加载一模型，其参数分别为字典序列化文件的地址、BLSTM 序列化文件的地址、最小词频、词嵌入向量维度和隐藏层神经元个数； \textit{train()} 用于训练一个 BLSTM 模型，由于其参数较多这里省略，详细可以参照下一节中的表~\ref{sql:modelConfigTable}； \textit{predict()} 对应预测请求，其参数分别为序列化器、BLSTM 模型，以及一个切片字符串，返回该切片是否安全。\textit{test()} 用于测试一个神经网络模型准确率，前两个参数与 \textit{predict()} 方法相同，后面两个 String 类型参数分别为切片数据文件夹和标记数据文件夹。
 
 MetricCalculator 为度量计算器类，其通过一系列度量指标用于评估预测效果，其属性 predictLabels 代表预测的标签，realLabels 为真实标签，\textit{update()} 方法用于增加预测和真实标签数据，\textit{compute()} 方法用于产生一系列度量值，其输入为一系列度量方法的名称，输出为这些度量的具体值。
 
@@ -696,7 +694,7 @@ BLSTM 类是 BLSTM 神经网络类，其继承于 Pytorch 模型基类 nn.Module
 \end{table}
 
 与程序分析相关的实体关系图如图~\ref{er:program}，其中，项目表 Project 保存项目名称，函数摘要表 Method\_Description 保存一个项目中的函数摘要信息，语句位置表 Location 记录关注点所在的代码位置，污染流表 Taint\_Flow
- 记录污染流和其中的切片信息，标记表 Label 记录一个污染流记录是否是安全的。一个项目可以有多个函数摘要、位置和污染流，即有一对多的关系，一个函数摘要或语句位置可以有多个污染流记录，而标记和污染流记录呈一对一关系。
+ 记录污染流和其中的切片信息，标记表 Label 记录一个污染流记录是否安全。一个项目可以有多个函数摘要、位置和污染流，即有一对多的关系，一个函数摘要或语句位置可以有多个污染流记录，而标记和污染流记录呈一对一关系。
 
 \begin{figure}[!htbp]
 	\centering
@@ -788,7 +786,7 @@ BLSTM 类是 BLSTM 神经网络类，其继承于 Pytorch 模型基类 nn.Module
 	\label{sql:taintFlow}
 \end{table}
 
-表~\ref{sql:label}是对标记表的字段说明，其中，id 是一个标记的唯一标识；taint\_flow 作为外键，指这被标记的污染流对象，同时一个污染流同时只能有一个标记；entry 和 point 分别为切片的入口点和关注点 ；is\_safe 标记了该污染流是安全/不安全的；create\_time记录该标记的创建时间；update\_time记录该标记的更新时间。
+表~\ref{sql:label}是对标记表的字段说明，其中，id 是一个标记的唯一标识；taint\_flow 作为外键，指向被标记的污染流对象，同时一个污染流同时只能有一个标记；entry 和 point 分别为切片的入口点和关注点 ；is\_safe 标记了该污染流是安全/不安全的；create\_time记录该标记的创建时间；update\_time记录该标记的更新时间。
 
 \begin{table}[!htbp]\footnotesize %label table
 	\centering
