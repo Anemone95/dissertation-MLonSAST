@@ -69,7 +69,7 @@ $dataflow \leftarrow getDataflow(method)$;\\
     \begin{minipage}[!htbp]{0.9\textwidth}
         \lstinputlisting[language=Java]{FIGs/chapter4/taintGraph.java}
     \end{minipage}
-    \caption{构造污点传播图的实现}\label{code:taintGraph}
+    \caption{构造污点传播图的代码片段}\label{code:taintGraph}
 \end{figure}
 
 首先，代码构造了一个空的污点传播图，将直接调用敏感函数的边加入图中，以图~\ref{code:xss} 中的代码为例，将$sink() \rightarrow Writer.write()$ 加入图中；接着向图中添加相关函数调用的边，具体地说，遍历污点传播相关语句位置集合，对于每一个 location，获取其调用函数（location 记录了调用函数的函数摘要），再获取其被调用函数（只需查找调用语句位置集合 loc2callee 即可），随后在将 location 转化为 SrcAnnotation，生成一条边并加入图中； 最后，只遍历先前得到的返回语句位置集合（injDetector.returns），向图中加入返回语句的点和边（代码 21$\sim$27 行）。
@@ -266,7 +266,7 @@ $addNode(tree, subtree, i)$函数用于将子树加入主树的第一层树干�
     \begin{minipage}{0.9\textwidth}
         \lstinputlisting[language=Java]{FIGs/chapter4/sliceJoana.java}
     \end{minipage}
-\caption{基于 Joana 的后向切片}\label{code:sliceJoana}
+\caption{基于 Joana 后向切片的代码片段}\label{code:sliceJoana}
 \end{figure}
 
 代码首先要获取函数 func 的 SDG ，若该函数在缓存中存在，则直接拿出（第 3 行），若不存在，则需要根据配置和入口生成 SDG（第 5$\sim$16 行）。接着使用 SDG 初始化一个 JoanaSDGSlicer，获取关注点行号上的所有 SDGNode 并且对其切片。切片完成后，对其按行号进行排序——这主要保证了每一次对相同污染流的切片的输出一致性。最后将其格式化为字符串。
@@ -302,7 +302,7 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
     \begin{minipage}{0.9\textwidth}
         \lstinputlisting[language=Java]{FIGs/chapter4/sliceWalaClassLoader.java}
     \end{minipage}
-    \caption{SliceWalaClassLoader 代码实现}\label{code:sliceWalaClassLoader}
+    \caption{SliceWalaClassLoader 的代码实现}\label{code:sliceWalaClassLoader}
     \vspace{-0.5cm}
 \end{figure}
 
@@ -316,7 +316,7 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
     \begin{minipage}{0.9\textwidth}
         \lstinputlisting[language=Java]{FIGs/chapter4/sliceJavaClassLoader.java}
     \end{minipage}
-    \caption{自定义 JavaClassLoader}\label{code:sliceJavaClassLoader}
+    \caption{自定义 JavaClassLoader 的代码实现}\label{code:sliceJavaClassLoader}
 \end{figure}
 
 最后将 ClassHierarchyFactory 产生的类层次图配置在 SDGBuilderConfig 实例的 cha 属性中。
@@ -336,7 +336,7 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
     \begin{minipage}{0.9\textwidth}
         \lstinputlisting[language=Java]{FIGs/chapter4/slicePruner.java}
     \end{minipage}
-    \caption{NodeLimitPruner 的实现}\label{code:slicePruner}
+    \caption{NodeLimitPruner 的代码实现}\label{code:slicePruner}
 \end{figure}
 
 下面以代码~\ref{code:xss}中 \textit{doGet()} 函数为例，说明剪枝过程，首先，WALA 会计算出如图~\ref{prune} 所示的函数调用图，\textit{fakeRootMethod()} 是 WALA 的一个抽象函数，它是所有调用图的入口，遍历时通过该函数寻找其他函数，接着该函数会连向 \textit{fakeWorldClinit()}——该函数也是 WALA 的抽象函数，WALA 通过该函数调用其他类的构造方法；该函数还会连向\textit{XSS.<init>()} ，它是 XSS 类的构造方法，最后函数连向真正需要进行切片的入口方法 \textit{doGet()}，在 \textit{doGet()} 中由于调用其他函数，又会出现其他方法节点。在剪枝时，首先需要将\textit{fakeRootMethod()} 方法加入 keep，否则无法进行遍历找到其他方法；接着加入入口方法 \textit{doGet()} ，随后按顺序依次加入 \textit{safe()} 和 \textit{unsafe()}方法，如果限制调用节点数为 4，那么 \textit{sink()} 节点将被剪枝，即最后保留的函数依次为 \textit{fakeRootMethod()}、 \textit{doGet()}、\textit{safe()} 和 \textit{unsafe()}，可以看到在搜索时，代码还忽略了非应用定义的方法，如\textit{getParameter()}、\textit{startsWith()} 等，这是为了在有限集合内尽可能多的保留程序特性，而省略其共性（因为不管是安全和非安全代码，这些非应用函数内切片内容不变），同时被删去的\textit{sink()} 函数也并不是被彻底忽略，因为它会在其他子污染流中被计算。
@@ -385,7 +385,7 @@ SliceJavaClassLoader、SliceClassLoaderFactory 和 SliceWalaClassLoader 用于�
     \begin{minipage}{0.9\textwidth}
         \lstinputlisting[language=Python]{FIGs/chapter4/preTokenize.py}
     \end{minipage}
-    \caption{建立单词表和向量化的实现片}\label{code:preTokenize}
+    \caption{建立单词表和向量化的代码片段}\label{code:preTokenize}
 \end{figure}
 
 \textit{build\_dict()} 方法输入为切片数据集，方法首先建立一个空的字典 \_dict 和词频表 word\_freq，接着遍历数据集中的所有切片，按空格拆分，并开始统计词频，遍历结束后，根据词频表，将词频大于 freq\_gt 的单词放入单词表，单词进入单词表的顺序将成为其id，小于等于该词频的单词会被映射为“UNK”，方法最终返回一个单词字典。
@@ -446,7 +446,7 @@ Pytorch 的 DataLoader 对象可手动指定校对函数 \textit{collate\_fn()}�
     \begin{minipage}{0.9\textwidth}
         \lstinputlisting[language=Python]{FIGs/chapter4/collateFn.py}
     \end{minipage}
-    \caption{DataLoader 的加载器}\label{code:collateFn}
+    \caption{DataLoader 的代码片段}\label{code:collateFn}
 \end{figure}
 
 可以看出，该函数的输入为一个向量化类和一批数据集合，该集合中存放切片字符串和对应标记对，对于每一个标记对，首先调用预处理模块对其泛化和向量化（第 3 行），接着按切片长度从长到短对一批数据排序，获取每条切片的长度记为 data\_length 变量，使用 Pytorch 预定义的函数 \textit{rnn\_utils.pad\_sequence()} 对已排好序的一批数据进行补 0，此时 data\_x 类型已由原先的 list 类型变为二维张量（Tensor）类型，最后将这批数据的标记作为一维向量，最后函数返回切片张量（二维），切片长度向量（一维）和标记向量（一维）。
