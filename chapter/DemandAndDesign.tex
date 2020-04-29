@@ -812,15 +812,16 @@ BLSTM 类是 BLSTM 神经网络类，其继承于 Pytorch 模型基类 nn.Module
 \begin{figure}[!htbp]
 	\centering
 	\includegraphics[width=1\linewidth]{FIGs/chapter3/model_er.pdf}
+    \vspace{-0.5cm}
 	\caption{与模型相关表的实体关系图}\label{er:model}
+    \vspace{-0.5cm}
 \end{figure}
 
  表~\ref{sql:modelConfigTable} 是对模型配置表的字段说明，其中 name 作为主键，用于唯一标识一个配置，训练时通过指定该值选择训练配置；slice\_dir 和 label\_dir 记录了学习用的数据集位置，分别表示了切片所在文件夹和标记所在文件夹（模型直接通过文件进行读取，而不从数据库读取，减少了IO消耗）；embedding\_dim、hidden\_dim 为模型自身参数，分别代表词嵌入的维度和隐藏层神经元个数（模型的每层神经元个数相等）；word\_freq\_gt 表示了将出现次数小于该值的单词表示为“UNK”（Unknown）；early\_stop\_patience、base\_learning\_rate、batch\_size、epoch 和 train\_percent记录了模型训练的配置，early\_stop\_patience 指训练轮数超过该值后，若模型效果（loss）仍比之前最优效果差，则提前停止训练，base\_learning\_rate 指初始学习率，batch\_size 指批量传入模型的数据量，epoch 指最大训练轮数，train\_percent 指训练集占总数据集的百分比，剩下的数据作为训练集，用于评估训练效果；最后，create\_time 和 update\_time 分别表示配置创建时间和配置更新时间。
 
-\begin{table}[!htbp]\footnotesize %model config table
+\begin{table}[H]\footnotesize %model config table
 	\centering
 	\caption{Model\_Config 表}
-	\vspace{2mm}
 	% l - left, r - right, c - center. | means one vertical line 这里声明的是表格单元中的内容如何对齐
 	\begin{tabular}{L{2.2cm}L{2cm}L{2.6cm}L{6cm}}
 		\toprule
@@ -846,7 +847,7 @@ BLSTM 类是 BLSTM 神经网络类，其继承于 Pytorch 模型基类 nn.Module
 
 表~\ref{sql:lstmModelTable} 是对 BLSTM 模型表的字段说明，其中 id 作为主键唯一标识一个模型；token\_dict\_path 和 model\_path 分别表示单词到整形值的映射字典文件位置和BLSTM模型位置，这两个字段用于加载模型实现对切片的预测；config 表示模型是由何配置训练得到的；accuracy、precision、recall和F1表示了模型的效果的准确率、精确率、召回率和 F1 度量，当配置划分没有训练集时，这些值为-1；create\_time记录模型被训练出的时间。
 
-\begin{table}[!htbp]\footnotesize %lstm model table
+\begin{table}[htb]\footnotesize %lstm model table
 	\centering
 	\caption{BLSTM\_Model表}
 	\vspace{2mm}
