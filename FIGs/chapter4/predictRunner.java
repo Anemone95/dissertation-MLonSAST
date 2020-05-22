@@ -15,9 +15,9 @@ for (int i = 0; i < sliceProject.getBugInstances().size(); i++) {
             treeIsSafe=true;
         } else {
             for (TaintFlow subFlow : flow) {
-                boolean bBlowIsSafe = false;
-                bBlowIsSafe = flowIsSafe(subFlow);
-                if (bBlowIsSafe){
+                boolean bFlowIsSafe = false;
+                bFlowIsSafe = flowIsSafe(subFlow);
+                if (bFlowIsSafe){
                     treeIsSafe=true;
                     safeFlows.add(subFlow);
                     break;
