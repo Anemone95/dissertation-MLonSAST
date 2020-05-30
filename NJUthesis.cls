@@ -79,8 +79,10 @@
     \RequirePackage{psfrag}
     \AtBeginDvi{\special{pdf:tounicode GBK-EUC-UCS2}} % GBK -> Unicode
   \else
-    \if\RequirePackage[dvipdfmx]{hyperref}
-    \else\RequirePackage[xetex]{hyperref}
+    % \RequirePackage[dvipdfmx]{hyperref} % This is the original.
+    \if\RequirePackage[dvipdfm]{hyperref} % eumes added
+    \else
+      \RequirePackage[xetex]{hyperref}
   \fi
   \DeclareGraphicsExtensions{.pdf,.eps,.ps}
 \fi
@@ -176,7 +178,9 @@
 \newcommand\englishtitle[1]{\def\NJUT@value@englishtitle{#1}}
 \newcommand\englishauthor[1]{\def\NJUT@value@englishauthor{#1}}
 \newcommand\englishadvisor[1]{\def\NJUT@value@englishadvisor{#1}}
+\newcommand\englishadvisorM[1]{\def\NJUT@value@englishadvisorM{#1}}
 \newcommand\englishadvisorname[1]{\def\NJUT@value@englishadvisorname{#1}}
+\newcommand\englishadvisornameM[1]{\def\NJUT@value@englishadvisornameM{#1}}
 \newcommand\englishinstitute[1]{\def\NJUT@value@englishinstitute{#1}}
 \newcommand\englishdate[1]{\def\NJUT@value@englishdate{#1}}
 \newcommand\englishaddress[1]{\def\NJUT@value@englishaddress{#1}}
@@ -364,6 +368,9 @@
       \vskip \stretch{1}
       \normalfont\zihao{4} \NJUT@label@englishadvisor
     \vskip 1pt
+      \normalfont\zihao{4}\NJUT@value@englishadvisorM
+      \bf\zihao{4}\NJUT@value@englishadvisornameM
+    \vskip 1pt
       \normalfont\zihao{4} \NJUT@value@englishadvisor
       \bf\zihao{4} \NJUT@value@englishadvisorname
     \vskip \stretch{2}
@@ -444,7 +451,7 @@
       \item[THESIS:] \NJUT@value@englishtitle
       \item[SPECIALIZATION:] \NJUT@value@englishmajor
       \item[POSTGRADUATE:] \NJUT@value@englishauthor
-      \item[MENTOR:] \NJUT@value@englishadvisor \NJUT@value@englishadvisorname
+      \item[MENTOR:]\NJUT@value@englishadvisorM\NJUT@value@englishadvisornameM,  \NJUT@value@englishadvisor \NJUT@value@englishadvisorname
     \end{description}
   }
   \begin{center}

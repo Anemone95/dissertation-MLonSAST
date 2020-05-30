@@ -68,12 +68,12 @@
 \subsection{污点分析原理}
 
 \subsubsection{污点分析三要素}
-污点分析主要有三个组成要素：污点信息产生点（source）、污点信息汇聚点（sink）和污点信息清洁点（clean），它们通常需要富有经验的安全工程师手动设置。
+污点分析主要有三个组成要素：污点信息产生点（source）、污点信息汇聚点（sink）和污点信息清洁点（sanitizer），它们通常需要富有经验的安全工程师手动设置。
 
 \begin{itemize}
 	\item 产生点（source）：污点产生点往往是用户输入的数据，比如Web应用中读取URL参数的函数，顾名思义，这些函数调用后的返回值被标记为污点——攻击者可以操控的数据点。
 	\item 汇聚点（sink）：检查点是程序的一些敏感操作，如调用数据库查询语句，或是将数据返回到网页，如果这些操作的数据是污点，那么意味着操作可被攻击者利用，即程序存在漏洞。
-	\item 清洁点（clean）：清洁点通常是对污点进行消除的一类操作，如SQL注入、XSS中的过滤函数。清洁点是污点传播准确性的重要保证，不能识别清洁点即会引发污点过污染问题。
+	\item 清洁点（sanitizer）：清洁点通常是对污点进行消除的一类操作，如SQL注入、XSS中的过滤函数。清洁点是污点传播准确性的重要保证，不能识别清洁点即会引发污点过污染问题。
 \end{itemize}
 
 
@@ -100,7 +100,7 @@
 	\caption{过程间污点分析}\label{externalflow}
 \end{figure}
 
-如图~\ref{externalflow}所示，分析过程从左侧函数开始，因为其找到了一处产生点——\textit{request.getParameter("xss")}，于是将污点传递到变量\textit{p}，接着调用函数\textit{func(p)}，于是对函数\textit{func}做过程内分析，得到其函数摘要，$\left\langle func, \left\{a, b, c\right\}, 1\right\rangle$，于是回到调用者的函数内，变量\textit{q}被标记为污点，又因为第三行存在一处汇聚点——\textit{response.getpriter.print()}，并且参数为污点，于是报告此处有漏洞，并且根据汇聚点可以判断该漏洞是一个 XSS 漏洞。
+如图~\ref{externalflow}所示，分析过程从左侧函数开始，因为其找到了一处产生点——\textit{request.getParameter("xss")}，于是将污点传递到变量\textit{p}，接着调用函数\textit{func(p)}，于是对函数\textit{func()}做过程内分析，得到其函数摘要，$\left\langle func, \left\{a, b, c\right\}, 1\right\rangle$，于是回到调用者的函数内，变量\textit{q}被标记为污点，又因为第三行存在一处汇聚点——\textit{response.getpriter.print()}，并且参数为污点，于是报告此处有漏洞，并且根据汇聚点可以判断该漏洞是一个 XSS 漏洞。
 
 \subsection{污点分析的优势和不足}
 污点分析能够对程序上下文有一定理解，往往能产生误报率相对较低以及可解释的漏洞报告，其方法对 Web 类型的安全漏洞覆盖率较高，而污点类型的漏洞普遍具有较高危害性~\cite{taintStyle,aletheia}，因此该方法已被很多工业界、学术界的安全静态扫描工具所使用~\cite{taintStyle,taint:taj,pixy}，本文也选择该技术产生初步漏洞扫描结果。
